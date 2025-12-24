@@ -24,20 +24,23 @@ ftooth = @(t) (t<x1).*tup + ...
 s = @(x) size(x,2)
 
 Rot = @(alp) reshape([
-    reshape(cos(alp),1,1,s(alp),s(alp)) ,reshape(-sin(alp),1,1,s(alp),s(alp)), reshape(alp*0,1,1,s(alp),s(alp));
-    reshape(sin(alp),1,1,s(alp),s(alp)), reshape(cos(alp),1,1,s(alp),s(alp)), reshape(alp*0,1,1,s(alp),s(alp));
-       reshape(alp*0,1,1,s(alp),s(alp)),    reshape(alp*0,1,1,s(alp),s(alp)), reshape(ones(size(alp*0)),1,1,s(alp),s(alp));
-  ],3,3,s(alp),s(alp))
+    reshape(cos(alp),1,1,s(alp)) ,reshape(-sin(alp),1,1,s(alp)), reshape(alp*0,1,1,s(alp));
+    reshape(sin(alp),1,1,s(alp)), reshape(cos(alp),1,1,s(alp)), reshape(alp*0,1,1,s(alp));
+       reshape(alp*0,1,1,s(alp)),    reshape(alp*0,1,1,s(alp)), reshape(ones(size(alp*0)),1,1,s(alp));
+  ],3,3,s(alp))
 
 rack = @(t) [ftooth(abs(t)); t; 0*t]
 
 y = @(u,v) num2cell(reshape(rack(v).+[R*ones(size(u)); -R*u; 0*u],3*s(u),s(v)),[1])
 
-[u,v] = meshgrid(-0.5:0.1:0.5, -0.5:0.1:0.5)
+X = rack(-0.5:0.1:0.5)
+Y = Rot(-0.5:0.1:0.5)
 
-M=Rot(u)
+[u,v] = meshgrid(1:11, 1:11)
 
-M1=reshape(rack(v).+[R*ones(size(u)); -R*u; 0*u],3,1,s(u),s(v))
+%M=Rot(u)
+
+M1=X(:,v)%.+[R*ones(size(u)); -R*u; 0*u]
 % Reshape and use arrayfun
 M_reshaped = reshape(M, 3, 3, []);
 V_reshaped = reshape(M1, 3, 1, []);
