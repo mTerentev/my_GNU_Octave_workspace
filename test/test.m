@@ -24,16 +24,15 @@ ftooth = @(t) (t<x1).*tup + ...
 s = @(x) size(x,2);
 
 Rot = @(alp) reshape([
-    reshape(cos(alp),1,1,s(alp)) ,reshape(-sin(alp),1,1,s(alp)), reshape(alp*0,1,1,s(alp));
-    reshape(sin(alp),1,1,s(alp)), reshape(cos(alp),1,1,s(alp)), reshape(alp*0,1,1,s(alp));
-       reshape(alp*0,1,1,s(alp)),    reshape(alp*0,1,1,s(alp)), reshape(ones(size(alp*0)),1,1,s(alp));
-  ],3,3,s(alp));
+    reshape(cos(alp),1,1,s(alp)) ,reshape(-sin(alp),1,1,s(alp));
+    reshape(sin(alp),1,1,s(alp)), reshape(cos(alp),1,1,s(alp));
+  ],2,2,s(alp));
 
-rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t)); reshape(0*t,1,s(t))];
+rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))];
 
-vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v)); reshape(v(3),1,s(v))];
+vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v))];
 
-h = 0.05;
+h = 0.01;
 
 U = -pi/n:h:pi/n;
 V = -pi/n:h:pi/n;
@@ -44,13 +43,13 @@ Y = Rot(U);
 [u,v] = meshgrid(1:size(U,2), 1:size(V,2));
 
 X = rack(V);
-X1 = [reshape(R*ones(s(U),s(V)),1,s(U)*s(V)); reshape(-R*U(u),1,s(U)*s(V)); reshape(0*U(u),1,s(U)*s(V))];
+X1 = [reshape(R*ones(s(U),s(V)),1,s(U)*s(V)); reshape(-R*U(u),1,s(U)*s(V))];
 
 M=Y(:,:,u);
 
 M1=X(:,v);
 
-R = zeros(3, 1, size(M,3));
+R = zeros(2, 1, size(M,3));
 
 
 
@@ -58,13 +57,13 @@ for k = 1:size(M,3)
     R(:,k) = M(:,:,k) * (M1(:,k)+X1(:,k));
 end
 
-R = reshape(R, 3, size(u), size(v));
+R = reshape(R, 2, size(u), size(v));
 
 %r=num2cell(Rot(u),[1,2])
 %r=y(u,v)
 hold on
 for k = 1:size(R,3)
-  plot3(R(1,:,k), R(2,:,k), R(3,:,k), "k");
+  plot(R(1,:,k), R(2,:,k), "k");
 end
 hold off
 %{
