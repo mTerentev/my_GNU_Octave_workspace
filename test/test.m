@@ -19,43 +19,54 @@ ftooth = @(t) (t<x1).*tup + ...
       (x1<=t & t<x2).*cf(x1,tup-rc,t,1) + ...
       (x2<=t & t<x3).*tf(t) + ...
       (x3<=t & t<x4).*cf(x4,tdown+rc,t,-1) + ...
-      (x4<=t).*tdown
+      (x4<=t).*tdown;
 
-s = @(x) size(x,2)
+s = @(x) size(x,2);
 
 Rot = @(alp) reshape([
     reshape(cos(alp),1,1,s(alp)) ,reshape(-sin(alp),1,1,s(alp)), reshape(alp*0,1,1,s(alp));
     reshape(sin(alp),1,1,s(alp)), reshape(cos(alp),1,1,s(alp)), reshape(alp*0,1,1,s(alp));
        reshape(alp*0,1,1,s(alp)),    reshape(alp*0,1,1,s(alp)), reshape(ones(size(alp*0)),1,1,s(alp));
-  ],3,3,s(alp))
+  ],3,3,s(alp));
 
-rack = @(t) [ftooth(abs(t)); t; 0*t]
+rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t)); reshape(0*t,1,s(t))];
 
-y = @(u,v) num2cell(reshape(rack(v).+[R*ones(size(u)); -R*u; 0*u],3*s(u),s(v)),[1])
+vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v)); reshape(v(3),1,s(v))];
 
-X = rack(-0.5:0.1:0.5)
-Y = Rot(-0.5:0.1:0.5)
+h = 0.05;
 
-[u,v] = meshgrid(1:11, 1:11)
+U = -pi/n:h:pi/n;
+V = -pi/n:h:pi/n;
 
-%M=Rot(u)
 
-M1=X(:,v)%.+[R*ones(size(u)); -R*u; 0*u]
-% Reshape and use arrayfun
-M_reshaped = reshape(M, 3, 3, []);
-V_reshaped = reshape(M1, 3, 1, []);
-R = zeros(3, 1, size(M_reshaped,3));
+Y = Rot(U);
 
-for k = 1:size(M_reshaped,3)
-    R(:,:,k) = M_reshaped(:,:,k) * V_reshaped(:,:,k);
+[u,v] = meshgrid(1:size(U,2), 1:size(V,2));
+
+X = rack(V);
+X1 = [reshape(R*ones(s(U),s(V)),1,s(U)*s(V)); reshape(-R*U(u),1,s(U)*s(V)); reshape(0*U(u),1,s(U)*s(V))];
+
+M=Y(:,:,u);
+
+M1=X(:,v);
+
+R = zeros(3, 1, size(M,3));
+
+
+
+for k = 1:size(M,3)
+    R(:,k) = M(:,:,k) * (M1(:,k)+X1(:,k));
 end
 
 R = reshape(R, 3, size(u), size(v));
 
 %r=num2cell(Rot(u),[1,2])
 %r=y(u,v)
-plot3(R(1,:,5), R(2,:,5), R(3,:,5))
-
+hold on
+for k = 1:size(R,3)
+  plot3(R(1,:,k), R(2,:,k), R(3,:,k), "k");
+end
+hold off
 %{
 %disp(sym(y))
 
