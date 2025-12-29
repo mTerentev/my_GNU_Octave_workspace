@@ -37,23 +37,23 @@ df_dn = @(f, n, u, v, d=10^(-6)) ...
 
 rack = @(t) [ftooth(abs(t)); t; 0];
 
-global y;
+global y F;
 y = @(u,v) Rot(u)*(rack(v)+[R; -R*u; 0]);
 
 F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
 
-function sol = Newton_Raphson(f, init, iters = 10)
+function sol = Newton_Raphson(f, init, rng, iters = 10)
   df_dx = @(f, x, d=10^(-6)) ...
       ( f(x + d/2) - f(x - d/2) ) / d;
-  sol = init;
+  sol = rng(init);
   for i=1:iters
     sol = sol - f(sol)/df_dx(f, sol);
-    if f(sol) < 10^(-5)
+    if abs(f(sol)) < 10^(-5)
       break
     endif
   endfor
-  if f(sol) >= 2*10^(-5)
-    sol = Newton_Raphson(f, init + 1);
+  if abs(f(sol)) >= 2*10^(-5)
+    sol = Newton_Raphson(f, init + 1, rng);
   endif
 end
 
@@ -84,21 +84,25 @@ function getV (h, event) global hv; hv = get(h, 'value'); update(); end
 
 
 function update()
-  global plot1 plot2 plot4 plot5 y sv hu hv df_dn;
+  global plot1 plot2 plot4 plot5 plot6 y F sv hu hv df_dn;
   hu;
   hv;
-  ph = y(hu, hv);
-  set(plot1, "xdata",ph(1,:));
-  set(plot1, "ydata",ph(2,:));
-  set(plot1, "zdata",ph(3,:));
-
+  
+  %set(plot1, "xdata",ph(1,:));
+  %set(plot1, "ydata",ph(2,:));
+  %set(plot1, "zdata",ph(3,:));
+%{
   rh = cat(2,arrayfun(@(v) y(hu,v), sv, "UniformOutput", false){:,:});
   set(plot2, "xdata",rh(1,:));
   set(plot2, "ydata",rh(2,:));
   set(plot2, "zdata",rh(3,:));
 
-  du = ph + normalize(df_dn(y, 1, hu, hv))/5;
-  dv = ph + normalize(df_dn(y, 2, hu, hv))/5;
+  
+  V = Newton_Raphson(@(v) F(hu, v), -5);
+  disp([V, F(hu,V)])
+  ph = y(hu, V);
+  du = ph + (df_dn(y, 1, hu, V))/5;
+  dv = ph + (df_dn(y, 2, hu, V))/5;
 
   set(plot4, "xdata",[ph(1),du(1)]);
   set(plot4, "ydata",[ph(2),du(2)]);
@@ -107,12 +111,17 @@ function update()
   set(plot5, "xdata",[ph(1),dv(1)]);
   set(plot5, "ydata",[ph(2),dv(2)]);
   set(plot5, "zdata",[ph(3),dv(3)]);
-
+  
+  r10 = cat(2,arrayfun(y, hu, V, "UniformOutput", false){:,:});
+  set(plot6, "xdata", r10(1,:));
+  set(plot6, "ydata", r10(2,:));
+  set(plot6, "zdata", r10(3,:));
+  %}
   refresh();
 end
 
 u_res = 1000;
-v_res = 100;
+v_res = 1000;
 
 global su sv;
 su = linspace(-pi/n, pi/n, u_res);
@@ -131,18 +140,19 @@ for u = su(1):0.1:su(end)
   plot3(r(1,:),r(2,:),r(3,:), "k");
 end
 
-V = zeros(size(su));
+U = zeros(size(sv));
 
-for i = 1:size(su,2)
-  V(:,i) = Newton_Raphson(@(v) F(su(i),v), -5);
+for i = 1:size(sv,2)
+  U(:,i) = Newton_Raphson(@(u) F(u,sv(i)), 1, su);
+  %Q = y(su(1),Qs);
 end
 
-r1 = cat(2,arrayfun(y, su, V, "UniformOutput", false){:,:});
-plot3(r1(1,:),r1(2,:),r1(3,:), "r", "LineWidth", 1, "marker", "o");
+r1 = cat(2,arrayfun(y, U, sv, "UniformOutput", false){:,:});
+plot6 = plot3(r1(1,:),r1(2,:),r1(3,:), "r", "LineWidth", 3, "marker", "none");
 
-
+%{
 rh = cat(2,arrayfun(@(v) y(0,v), sv, "UniformOutput", false){:,:});
-global plot1 plot2 plot4 plot5
+global plot1 plot2 plot4 plot5 plot6
 plot2 = plot3(rh(1,:),rh(2,:),rh(3,:), "r", "LineWidth", 3);
 
 ph = y(0, 0);
@@ -153,7 +163,7 @@ dv = ph + df_dn(y, 2, 0, 0);
 
 plot4 = plot3([ph(1),du(1)],[ph(2),du(2)],[ph(3),du(3)], "b", "LineWidth", 3);
 plot5 = plot3([ph(1),dv(1)],[ph(2),dv(2)],[ph(3),dv(3)], "g", "LineWidth", 3);
-
+%}
 hold off;
 
 
