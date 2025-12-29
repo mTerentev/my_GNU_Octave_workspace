@@ -16,13 +16,12 @@ x2 = x1+rc*cos(alp);
 x4 = 0.25-(tdown+rc)*tan(alp)+rc/cos(alp);
 x3 = x4-rc*cos(alp);
 
-ftooth = @(t) piecewise(
-      t<x1, tup,
-      t<x2, cf(x1,tup-rc,t,1),
-      t<x3, tf(t),
-      t<x4, cf(x4,tdown+rc,t,-1),
-      t>=x4, tdown
-);
+ftooth = @(t) ...
+      (t<x1) * tup + ...
+      (x1<=t & t<x2) * cf(x1,tup-rc,t,1) + ...
+      (x2<=t & t<x3) * tf(t) + ...
+      (x3<=t & t<x4) * cf(x4,tdown+rc,t,-1) + ...
+      (x4<=t) * tdown
 
 Rot = @(alp) [
     [cos(alp),-sin(alp), 0];
@@ -36,8 +35,8 @@ rack = @(t) [ftooth(abs(t)); t; 0];
 
 y = @(u,v) Rot(u)*(rack(v)+[R; -R*u; 0]);
 
-dy_du = @(u, v) diff(y, u)
-dy_dv = @(u, v) diff(y, v)
+%dy_du = @(u, v) diff(y, u)
+%dy_dv = @(u, v) diff(y, v)
 
 
 
@@ -51,9 +50,8 @@ axis equal;
 hold on;
 warning("off","all")
 for u = su
-  syms v
-  f = @(v) matlabFunction(y(sym(u),v));
-  r = cat(2,arrayfun(f(v), sv, "UniformOutput", false){:,:});
+  f = @(v) y(u, v);
+  r = cat(2,arrayfun(f, sv, "UniformOutput", false){:,:});
   plot3(r(1,:),r(2,:),r(3,:), "k");
 end
 hold off;
