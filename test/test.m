@@ -3,7 +3,7 @@ ro = 1.2;
 ri = 0.8;
 alp = 20*pi/180;
 n = 5;
-rc = 0.1;
+rc = 0.01;
 
 tf = @(x) (0.25-x)/tan(alp);
 
@@ -29,24 +29,33 @@ Rot = @(alp) [
     [       0,        0, 1];
   ];
 
-df_du = @(f, n, u, v, d=10^(-4)) ...
-      ( f(u + d*(n==1),v + d*(n==2)) - f(u, v) ) / d;
+
+
+global df_dn
+df_dn = @(f, n, u, v, d=10^(-6)) ...
+      ( f(u + d*(n==1)/2,v + d*(n==2)/2) - f(u - d*(n==1)/2,v - d*(n==2)/2) ) / d;
 
 rack = @(t) [ftooth(abs(t)); t; 0];
 
 global y;
 y = @(u,v) Rot(u)*(rack(v)+[R; -R*u; 0]);
 
-%dy_du = @(u, v) diff(y, u)
-%dy_dv = @(u, v) diff(y, v)
+F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
 
-df_du(y, 2, 0, 0);
-
-F = @(u, v) cross(df_du(y, 1, u, v), df_du(y, 2, u, v));
-
-
-
-
+function sol = Newton_Raphson(f, init, iters = 10)
+  df_dx = @(f, x, d=10^(-6)) ...
+      ( f(x + d/2) - f(x - d/2) ) / d;
+  sol = init;
+  for i=1:iters
+    sol = sol - f(sol)/df_dx(f, sol);
+    if f(sol) < 10^(-5)
+      break
+    endif
+  endfor
+  if f(sol) >= 2*10^(-5)
+    sol = Newton_Raphson(f, init + 1);
+  endif
+end
 
 
 global hu hv;
@@ -54,8 +63,8 @@ uslider = uicontrol (                    ...
          'style', 'slider',                ...
          'Units', 'normalized',            ...
          'position', [0, 0.05, 1, 0.05], ...
-         'min', -pi/2,                         ...
-         'max', pi/2,                        ...
+         'min', -pi/n,                         ...
+         'max', pi/n,                        ...
          'value', 0,                      ...
          'callback', {@getU}          ...
        );
@@ -65,8 +74,8 @@ vslider = uicontrol (                    ...
          'style', 'slider',                ...
          'Units', 'normalized',            ...
          'position', [0, 0, 1, 0.05], ...
-         'min', -pi/2,                         ...
-         'max', pi/2,                        ...
+         'min', -pi/n,                         ...
+         'max', pi/n,                        ...
          'value', 0,                      ...
          'callback', {@getV}          ...
        );
@@ -75,8 +84,10 @@ function getV (h, event) global hv; hv = get(h, 'value'); update(); end
 
 
 function update()
-  global plot1 plot2 y sv hu vu;
-  ph = y(hu, vu);
+  global plot1 plot2 plot4 plot5 y sv hu hv df_dn;
+  hu;
+  hv;
+  ph = y(hu, hv);
   set(plot1, "xdata",ph(1,:));
   set(plot1, "ydata",ph(2,:));
   set(plot1, "zdata",ph(3,:));
@@ -85,10 +96,22 @@ function update()
   set(plot2, "xdata",rh(1,:));
   set(plot2, "ydata",rh(2,:));
   set(plot2, "zdata",rh(3,:));
+
+  du = ph + normalize(df_dn(y, 1, hu, hv))/5;
+  dv = ph + normalize(df_dn(y, 2, hu, hv))/5;
+
+  set(plot4, "xdata",[ph(1),du(1)]);
+  set(plot4, "ydata",[ph(2),du(2)]);
+  set(plot4, "zdata",[ph(3),du(3)]);
+
+  set(plot5, "xdata",[ph(1),dv(1)]);
+  set(plot5, "ydata",[ph(2),dv(2)]);
+  set(plot5, "zdata",[ph(3),dv(3)]);
+
   refresh();
 end
 
-u_res = 100;
+u_res = 1000;
 v_res = 100;
 
 global su sv;
@@ -102,7 +125,7 @@ axis equal;
 hold on;
 warning("off","all");
 
-for u = su
+for u = su(1):0.1:su(end)
   f = @(v) y(u, v);
   r = cat(2,arrayfun(f, sv, "UniformOutput", false){:,:});
   plot3(r(1,:),r(2,:),r(3,:), "k");
@@ -111,21 +134,25 @@ end
 V = zeros(size(su));
 
 for i = 1:size(su,2)
-  V(:,i) = fsolve(@(v) F(su(:,i), v), su(:,i));
-  %r1 = y(su(i),V(:,i));
-  %plot3(r1(1,:),r1(2,:),r1(3,:), 'LineStyle', 'none', 'Marker', 'o');
+  V(:,i) = Newton_Raphson(@(v) F(su(i),v), -5);
 end
 
 r1 = cat(2,arrayfun(y, su, V, "UniformOutput", false){:,:});
-plot3(r1(1,:),r1(2,:),r1(3,:), "r", 'LineStyle', 'none', 'Marker', 'o');
+plot3(r1(1,:),r1(2,:),r1(3,:), "r", "LineWidth", 1, "marker", "o");
 
-ph = y(0, 0);
-global plot1
-plot1 = plot3(ph(1,:),ph(2,:),ph(3,:), "o");
 
 rh = cat(2,arrayfun(@(v) y(0,v), sv, "UniformOutput", false){:,:});
-global plot2
+global plot1 plot2 plot4 plot5
 plot2 = plot3(rh(1,:),rh(2,:),rh(3,:), "r", "LineWidth", 3);
+
+ph = y(0, 0);
+plot1 = plot3(ph(1,:),ph(2,:),ph(3,:), "o", "LineWidth", 5);
+
+du = ph + df_dn(y, 1, 0, 0);
+dv = ph + df_dn(y, 2, 0, 0);
+
+plot4 = plot3([ph(1),du(1)],[ph(2),du(2)],[ph(3),du(3)], "b", "LineWidth", 3);
+plot5 = plot3([ph(1),dv(1)],[ph(2),dv(2)],[ph(3),dv(3)], "g", "LineWidth", 3);
 
 hold off;
 
