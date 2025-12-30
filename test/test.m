@@ -39,86 +39,33 @@ rack = @(t) [ftooth(abs(t)); t; 0];
 
 global y F;
 y = @(u,v) Rot(u)*(rack(v)+[R; -R*u; 0]);
+y1 = @(u,v) Rot(u)*(rack(v)+[R+0.01; -R*u; 0]);
 
 F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
+F1 = @(u, v) cross(df_dn(y1, 1, u, v), df_dn(y1, 2, u, v))(3);
 
-function sol = Newton_Raphson(f, init, rng, iters = 10)
-  df_dx = @(f, x, d=10^(-6)) ...
-      ( f(x + d/2) - f(x - d/2) ) / d;
-  sol = rng(init);
+function sol = Newton_Raphson(f, init=[rand()-0.5;rand()-0.5], iters = 10)
+
+  global df_dn;
+  n = 2;
+  m = 2;
+  sol = init;
   for i=1:iters
-    sol = sol - f(sol)/df_dx(f, sol);
-    if abs(f(sol)) < 10^(-5)
-      break
+    J = zeros(n,m);
+    for k=1:m
+      J(:,k) = df_dn(f,k,sol(1), sol(2));
+    endfor
+    sol = sol - J^(-1)*f(sol(1),sol(2));
+    if abs(sol) > 2
+      sol = Newton_Raphson(f);
+      return
+    endif
+    if abs(f(sol(1),sol(2))) < 10^(-5)
+      return
     endif
   endfor
-  if abs(f(sol)) >= 2*10^(-5)
-    sol = Newton_Raphson(f, init + 1, rng);
-  endif
 end
 
-
-global hu hv;
-uslider = uicontrol (                    ...
-         'style', 'slider',                ...
-         'Units', 'normalized',            ...
-         'position', [0, 0.05, 1, 0.05], ...
-         'min', -pi/n,                         ...
-         'max', pi/n,                        ...
-         'value', 0,                      ...
-         'callback', {@getU}          ...
-       );
-function getU (h, event) global hu; hu = get(h, 'value'); update(); end
-
-vslider = uicontrol (                    ...
-         'style', 'slider',                ...
-         'Units', 'normalized',            ...
-         'position', [0, 0, 1, 0.05], ...
-         'min', -pi/n,                         ...
-         'max', pi/n,                        ...
-         'value', 0,                      ...
-         'callback', {@getV}          ...
-       );
-function getV (h, event) global hv; hv = get(h, 'value'); update(); end
-
-
-
-function update()
-  global plot1 plot2 plot4 plot5 plot6 y F sv hu hv df_dn;
-  hu;
-  hv;
-  
-  %set(plot1, "xdata",ph(1,:));
-  %set(plot1, "ydata",ph(2,:));
-  %set(plot1, "zdata",ph(3,:));
-%{
-  rh = cat(2,arrayfun(@(v) y(hu,v), sv, "UniformOutput", false){:,:});
-  set(plot2, "xdata",rh(1,:));
-  set(plot2, "ydata",rh(2,:));
-  set(plot2, "zdata",rh(3,:));
-
-  
-  V = Newton_Raphson(@(v) F(hu, v), -5);
-  disp([V, F(hu,V)])
-  ph = y(hu, V);
-  du = ph + (df_dn(y, 1, hu, V))/5;
-  dv = ph + (df_dn(y, 2, hu, V))/5;
-
-  set(plot4, "xdata",[ph(1),du(1)]);
-  set(plot4, "ydata",[ph(2),du(2)]);
-  set(plot4, "zdata",[ph(3),du(3)]);
-
-  set(plot5, "xdata",[ph(1),dv(1)]);
-  set(plot5, "ydata",[ph(2),dv(2)]);
-  set(plot5, "zdata",[ph(3),dv(3)]);
-  
-  r10 = cat(2,arrayfun(y, hu, V, "UniformOutput", false){:,:});
-  set(plot6, "xdata", r10(1,:));
-  set(plot6, "ydata", r10(2,:));
-  set(plot6, "zdata", r10(3,:));
-  %}
-  refresh();
-end
 
 u_res = 1000;
 v_res = 1000;
@@ -141,14 +88,29 @@ for u = su(1):0.1:su(end)
 end
 
 U = zeros(size(sv));
+Ux = zeros(size(sv));
+U1 = zeros(size(sv));
 
+l=1
 for i = 1:size(sv,2)
-  U(:,i) = Newton_Raphson(@(u) F(u,sv(i)), 1, su);
-  %Q = y(su(1),Qs);
-end
+  solu = fsolve(@(u) F(u,sv(i)), u);
+  point = y(solu,sv(i));
 
-r1 = cat(2,arrayfun(y, U, sv, "UniformOutput", false){:,:});
-plot6 = plot3(r1(1,:),r1(2,:),r1(3,:), "r", "LineWidth", 3, "marker", "none");
+  sol2 = Newton_Raphson(@(u,v) (y(u,v)-point)(1:2));
+  %Q = y(su(1),Qs);
+  if abs([solu;sv(i)]-sol2)<0.01
+    U(:,l) = solu;
+    Ux(:,l) = sv(i);
+    l++;
+  endif
+end
+U=resize(U,1,l-1);
+Ux=resize(Ux,1,l-1);
+r = cat(2,arrayfun(y, U, Ux, "UniformOutput", false){:,:});
+plot6 = plot3(r(1,:),r(2,:),r(3,:), "r", "LineWidth", 3, "marker", "none");
+
+%r1 = cat(2,arrayfun(y1, U1, sv, "UniformOutput", false){:,:});
+%plot6 = plot3(r1(1,:),r1(2,:),r1(3,:), "b", "LineWidth", 1, "marker", "none");
 
 %{
 rh = cat(2,arrayfun(@(v) y(0,v), sv, "UniformOutput", false){:,:});
