@@ -66,9 +66,32 @@ function sol = Newton_Raphson(f, init=[rand()-0.5;rand()-0.5], iters = 10)
   endfor
 end
 
+function sols = NR_all_sols(f, u, v)
+  m = size(u,2);
+  n = size(v,2);
+  
+  [U,V] = meshgrid(u,v);
+  inits = [reshape(U,1,m,n);reshape(V,1,m,n)];
+  sols = zeros(2,5);
+  l=0;
+  for i=1:m
+    for j=1:n
+      sol = Newton_Raphson(f, inits(:,i,j));
+      in_list = 0;
+      for k=1:l
+        if abs(sols(:,k) - sol) < 0.1 in_list = 1; break endif
+      endfor
+      if in_list break endif
+      l++;
+      sols(:,l) = sol;
+    endfor
+  endfor
+  sols = resize(sols,2,l);
+endfunction
 
-u_res = 1000;
-v_res = 1000;
+
+u_res = 100;
+v_res = 100;
 
 global su sv;
 su = linspace(-pi/n, pi/n, u_res);
@@ -91,14 +114,17 @@ U = zeros(size(sv));
 Ux = zeros(size(sv));
 U1 = zeros(size(sv));
 
-l=1
+l=1;
 for i = 1:size(sv,2)
   solu = fsolve(@(u) F(u,sv(i)), u);
   point = y(solu,sv(i));
 
   sol2 = Newton_Raphson(@(u,v) (y(u,v)-point)(1:2));
-  %Q = y(su(1),Qs);
-  if abs([solu;sv(i)]-sol2)<0.01
+  
+  sols = NR_all_sols(@(u,v) (y(u,v)-point)(1:2), -1:0.5:1, -1:0.5:1);
+  
+  
+  if size(sols,2) == 1
     U(:,l) = solu;
     Ux(:,l) = sv(i);
     l++;
