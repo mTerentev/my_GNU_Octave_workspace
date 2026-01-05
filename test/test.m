@@ -44,25 +44,28 @@ y1 = @(u,v) Rot(u)*(rack(v)+[R+0.01; -R*u; 0]);
 F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
 F1 = @(u, v) cross(df_dn(y1, 1, u, v), df_dn(y1, 2, u, v))(3);
 
-function sol = Newton_Raphson(f, init=[rand()-0.5;rand()-0.5], iters = 10)
+function sols = Newton_Raphson(f, inits, iters = 10)
 
   global df_dn;
   n = 2;
   m = 2;
-  sol = init;
+  sols = inits;
   for i=1:iters
-    J = zeros(n,m);
+    J = zeros(n,m,size(inits,2),size(inits,3));
     for k=1:m
-      J(:,k) = df_dn(f,k,sol(1), sol(2));
+      for i=1:size(inits(2))
+        for j=1:size(inits(3))
+          J(:,k,i,j) = df_dn(f,k,sols(1,i,j), sols(2,i,j));
+        endfor
+      endfor
     endfor
-    sol = sol - J^(-1)*f(sol(1),sol(2));
-    if abs(sol) > 2
-      %sol = Newton_Raphson(f);
-      return
-    endif
-    if abs(f(sol(1),sol(2))) < 10^(-5)
-      return
-    endif
+    del = zeros(2,size(inits,2),size(inits,3));
+    for i=1:size(inits(2))
+        for j=1:size(inits(3))
+          del(:,i,j) = J(:,:,i,j)^(-1)*f(sols(1,i,j),sols(2,i,j));
+        endfor
+    endfor
+    sols = sols - del;
   endfor
 end
 
@@ -74,19 +77,10 @@ function sols = NR_all_sols(f, u, v)
   inits = [reshape(U,1,m,n);reshape(V,1,m,n)];
   sols = zeros(2,5);
   l=0;
-  for i=1:m
-    for j=1:n
-      sol = Newton_Raphson(f, inits(:,i,j));
-      in_list = 0;
-      for k=1:l
-        if abs(sols(:,k) - sol) < 0.1 in_list = 1; break endif
-      endfor
-      if in_list break endif
-      l++;
-      sols(:,l) = sol;
-    endfor
-  endfor
-  sols = resize(sols,2,l);
+
+  sols = Newton_Raphson(f, inits);
+  sols = cluster(sols)
+
 endfunction
 
 
