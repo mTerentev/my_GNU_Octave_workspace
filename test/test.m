@@ -57,7 +57,7 @@ function sol = Newton_Raphson(f, init=[rand()-0.5;rand()-0.5], iters = 10)
     endfor
     sol = sol - J^(-1)*f(sol(1),sol(2));
     if abs(sol) > 2
-      sol = Newton_Raphson(f);
+      %sol = Newton_Raphson(f);
       return
     endif
     if abs(f(sol(1),sol(2))) < 10^(-5)
@@ -69,7 +69,7 @@ end
 function sols = NR_all_sols(f, u, v)
   m = size(u,2);
   n = size(v,2);
-  
+
   [U,V] = meshgrid(u,v);
   inits = [reshape(U,1,m,n);reshape(V,1,m,n)];
   sols = zeros(2,5);
@@ -90,8 +90,8 @@ function sols = NR_all_sols(f, u, v)
 endfunction
 
 
-u_res = 100;
-v_res = 100;
+u_res = 1000;
+v_res = 1000;
 
 global su sv;
 su = linspace(-pi/n, pi/n, u_res);
@@ -114,26 +114,28 @@ U = zeros(size(sv));
 Ux = zeros(size(sv));
 U1 = zeros(size(sv));
 
-l=1;
+points = zeros(3,size(sv,2));
+
 for i = 1:size(sv,2)
   solu = fsolve(@(u) F(u,sv(i)), u);
-  point = y(solu,sv(i));
+  points(:,i) = y(solu,sv(i));
 
-  sol2 = Newton_Raphson(@(u,v) (y(u,v)-point)(1:2));
-  
-  sols = NR_all_sols(@(u,v) (y(u,v)-point)(1:2), -1:0.5:1, -1:0.5:1);
-  
-  
+endfor
+plot3(points(1,:),points(2,:),points(3,:), "r", "LineWidth", 3, "marker", "none");
+
+filtered_points = zeros(3,size(sv,2));
+
+l=1;
+for i = 1:size(sv,2)
+
+  sols = NR_all_sols(@(u,v) (y(u,v)-points(i))(1:2), -1:0.05:1, -1:0.05:1);
+
   if size(sols,2) == 1
-    U(:,l) = solu;
-    Ux(:,l) = sv(i);
-    l++;
+    filtered_points(l) = point(i);
   endif
 end
-U=resize(U,1,l-1);
-Ux=resize(Ux,1,l-1);
-r = cat(2,arrayfun(y, U, Ux, "UniformOutput", false){:,:});
-plot6 = plot3(r(1,:),r(2,:),r(3,:), "r", "LineWidth", 3, "marker", "none");
+
+plot3(filtered_points(1,:),filtered_points(2,:),filtered_points(3,:), "g", "LineWidth", 3, "marker", "none");
 
 %r1 = cat(2,arrayfun(y1, U1, sv, "UniformOutput", false){:,:});
 %plot6 = plot3(r1(1,:),r1(2,:),r1(3,:), "b", "LineWidth", 1, "marker", "none");
