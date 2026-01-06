@@ -58,6 +58,8 @@ M1=X(:,v);
 
 Y = zeros(2, u_res, v_res);
 
+
+
 for i=1:u_res
   for j=1:v_res
     k = (i-1)*v_res + j;
@@ -68,9 +70,9 @@ end
 df_dn = @(f, n, u, v, d=10^(-6)) ...
       ( f(u + d*(n==1)/2,v + d*(n==2)/2) - f(u - d*(n==1)/2,v - d*(n==2)/2) ) / d;
 
-rack = @(t) [ftooth(abs(t)); t; 0];
+rack = @(t) [ftooth(abs(t)); t];
 
-y = @(u,v) (Rot(u)*(rack(v)+[R; -R*u; 0]));
+y = @(u,v) resize((Rot(u)*(rack(v)+[R; -R*u])),3,1);
 
 F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
 
@@ -82,19 +84,19 @@ for i = 1:u_res
     plot(Y(1,i,:),Y(2,i,:), "k");
 end
 
-%{
-points = zeros(3,size(sv,2));
+
+points = zeros(2,v_res);
 
 for i = 1:size(sv,2)
   u=0;
   solu = fsolve(@(u) F(u,sv(i)), u);
-  points(:,i) = y(solu,sv(i));
+  points(:,i) = y(solu,sv(i))(1:2);
 endfor
-plot3(points(1,:),points(2,:),points(3,:), "r", "LineWidth", 3, "marker", "none");
+plot(points(1,:),points(2,:), "r", "LineWidth", 3, "marker", "none");
 
 
 
-filtered_points = zeros(3,size(points,2));
+filtered_points = zeros(2,size(points,2));
 l=1;
 for i=1:size(points,2)
 
@@ -108,7 +110,7 @@ for i=1:size(points,2)
     l++;
   endif
 end
-filtered_points = resize(filtered_points, 3, l-1);
-plot3(filtered_points(1,:),filtered_points(2,:),filtered_points(3,:), "g", "LineWidth", 3, "marker", "none");
+filtered_points = resize(filtered_points, 2, l-1);
+plot(filtered_points(1,:),filtered_points(2,:), "g", "LineWidth", 3, "marker", "none");
 
 hold off;
