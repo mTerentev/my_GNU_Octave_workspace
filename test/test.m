@@ -3,7 +3,11 @@ ro = 1.2;
 ri = 0.8;
 alp = 20*pi/180;
 n = 5;
-rc = 0.01;
+rc = 0.05;
+
+tf = @(x) (0.25-x)/tan(alp);
+
+cf = @(x,y,t,s) s*sqrt(rc^2-(t-x).^2) + y;
 
 tup=(ro-R)*n/(2*pi*R);
 tdown=(ri-R)*n/(2*pi*R);
@@ -11,6 +15,7 @@ x1 = 0.25-(tup-rc)*tan(alp)-rc/cos(alp);
 x2 = x1+rc*cos(alp);
 x4 = 0.25-(tdown+rc)*tan(alp)+rc/cos(alp);
 x3 = x4-rc*cos(alp);
+
 
 tf = @(x) (0.25-x)/tan(alp);
 cf = @(x,y,t,s) s*sqrt(rc^2-(t-x).^2) + y;
@@ -32,69 +37,78 @@ rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))];
 
 vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v))];
 
-h = 0.01;
+u_res = 200;
+v_res = 2000;
 
-U = -pi/n:h:pi/n;
-V = -pi/n:h:pi/n;
+su = linspace(-pi/n, pi/n, u_res);
+sv = linspace(-pi/n, pi/n, v_res);
 
+Rot_field = Rot(su);
 
-Y = Rot(U);
+[u,v] = meshgrid(1:u_res, 1:v_res);
 
-[u,v] = meshgrid(1:size(U,2), 1:size(V,2));
+[U, V] = meshgrid(su,sv);
 
-X = rack(V);
-X1 = [reshape(R*ones(s(U),s(V)),1,s(U)*s(V)); reshape(-R*U(u),1,s(U)*s(V))];
+X = rack(sv);
+X1 = [reshape(R*ones(u_res,v_res),1,u_res*v_res); reshape(-R*U,1,u_res*v_res)];
 
-M=Y(:,:,u);
+MRot=Rot_field(:,:,u);
 
 M1=X(:,v);
 
-R = zeros(2, 1, size(M,3));
+Y = zeros(2, u_res, v_res);
 
-
-
-for k = 1:size(M,3)
-    R(:,k) = M(:,:,k) * (M1(:,k)+X1(:,k));
-end
-
-R = reshape(R, 2, size(u), size(v));
-
-%r=num2cell(Rot(u),[1,2])
-%r=y(u,v)
-hold on
-for k = 1:size(R,3)
-  plot(R(1,:,k), R(2,:,k), "k");
-end
-hold off
-%{
-%disp(sym(y))
-
-dy_du = @(u, v) diff(y, u)
-dy_dv = @(u, v) diff(y, v)
-
-F = @(u,v) (cross(dy_du(u,v), dy_dv(u,v)))
-
-syms u v
-disp(solve(F(u,v), u))
-
-disp(F(1,2))
-%}
-function plot_family(f)
-
-  u_res = 10
-  v_res = 100
-
-  su = linspace(-pi/n, pi/n, u_res)
-  sv = linspace(-pi/n, pi/n, v_res),
-
-  axis equal
-  hold on
-  for i = su
-    f = matlabFunction(sym(y))
-    r = cat(2,arrayfun(@(v) f(i,v), sv, "UniformOutput", false){:,:})
-    plot3(r(1,:),r(2,:),r(3,:), "k")
+for i=1:u_res
+  for j=1:v_res
+    k = (i-1)*v_res + j;
+    Y(:,i,j) = MRot(:,:,k) * (M1(:,k)+X1(:,k));
   end
-  hold off
 end
 
-axis equal
+df_dn = @(f, n, u, v, d=10^(-6)) ...
+      ( f(u + d*(n==1)/2,v + d*(n==2)/2) - f(u - d*(n==1)/2,v - d*(n==2)/2) ) / d;
+
+rack = @(t) [ftooth(abs(t)); t; 0];
+
+y = @(u,v) (Rot(u)*(rack(v)+[R; -R*u; 0]));
+
+F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
+
+axis equal;
+hold on;
+warning("off","all");
+
+for i = 1:u_res
+    plot(Y(1,i,:),Y(2,i,:), "k");
+end
+
+%{
+points = zeros(3,size(sv,2));
+
+for i = 1:size(sv,2)
+  u=0;
+  solu = fsolve(@(u) F(u,sv(i)), u);
+  points(:,i) = y(solu,sv(i));
+endfor
+plot3(points(1,:),points(2,:),points(3,:), "r", "LineWidth", 3, "marker", "none");
+
+
+
+filtered_points = zeros(3,size(points,2));
+l=1;
+for i=1:size(points,2)
+
+  field = reshape(vecnorm(Y - points(:,i), 2, 1), u_res, v_res);
+  threshold = 0.001;
+  zero_mask = field < threshold;
+  [labels, num_regions] = bwlabel(zero_mask, 8);
+  num_regions
+  if num_regions < 2
+    filtered_points(:,l) = points(:,i);
+    l++;
+  endif
+end
+filtered_points = resize(filtered_points, 3, l-1);
+plot3(filtered_points(1,:),filtered_points(2,:),filtered_points(3,:), "g", "LineWidth", 3, "marker", "none");
+
+hold off;
