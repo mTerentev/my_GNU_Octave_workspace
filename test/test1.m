@@ -1,1 +1,1 @@
-NR_all_sols(@(u,v) u+v,-1:1,-1:1)
+IMAX
