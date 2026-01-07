@@ -1,3 +1,6 @@
+
+
+
 R = 1;
 ro = 1.2;
 ri = 0.8;
@@ -37,80 +40,75 @@ rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))];
 
 vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v))];
 
-u_res = 200;
+u_res = 2000;
 v_res = 2000;
 
 su = linspace(-pi/n, pi/n, u_res);
 sv = linspace(-pi/n, pi/n, v_res);
-
-Rot_field = Rot(su);
-
 [u,v] = meshgrid(1:u_res, 1:v_res);
-
 [U, V] = meshgrid(su,sv);
 
+d = @(s) (s(end)-s(1))/size(s,2);
+Rot_field = Rot(su);
+
 X = rack(sv);
-X1 = [reshape(R*ones(u_res,v_res),1,u_res*v_res); reshape(-R*U,1,u_res*v_res)];
+X1 = reshape([reshape(R*ones(u_res,v_res),1,u_res*v_res); reshape(-R*U,1,u_res*v_res)],2,1,v_res,u_res);
 
-MRot=Rot_field(:,:,u);
+MRot=reshape(Rot_field(:,:,u),2,2,v_res,u_res);
 
-M1=X(:,v);
+M1=reshape(X(:,v),2,1,v_res,u_res);
 
-Y = zeros(2, u_res, v_res);
+function result = batchMTimesV(A,B)
+  result = zeros(2, 1, size(A,3), size(A,4));
+  result(1,1,:,:) = A(1,1,:,:).*B(1,1,:,:) + A(1,2,:,:).*B(2,1,:,:);
+  result(2,1,:,:) = A(2,1,:,:).*B(1,1,:,:) + A(2,2,:,:).*B(2,1,:,:);
+endfunction
 
+function result = batchCross(u,v)
+  result = zeros(1, 1, size(u,3), size(u,4));
+  result(1,1,:,:) = u(1,1,:,:).*v(2,1,:,:) - u(2,1,:,:).*v(1,1,:,:);
+endfunction
 
+Y = batchMTimesV(MRot, M1 + X1);
 
-for i=1:u_res
-  for j=1:v_res
-    k = (i-1)*v_res + j;
-    Y(:,i,j) = MRot(:,:,k) * (M1(:,k)+X1(:,k));
-  end
-end
-
-df_dn = @(f, n, u, v, d=10^(-6)) ...
-      ( f(u + d*(n==1)/2,v + d*(n==2)/2) - f(u - d*(n==1)/2,v - d*(n==2)/2) ) / d;
-
-rack = @(t) [ftooth(abs(t)); t];
-
-y = @(u,v) resize((Rot(u)*(rack(v)+[R; -R*u])),3,1);
-
-F = @(u, v) cross(df_dn(y, 1, u, v), df_dn(y, 2, u, v))(3);
+dY_du = resize(diff(Y,1,4)/d(su),2,1,v_res-1,u_res-1);
+dY_dv = resize(diff(Y,1,3)/d(sv),2,1,v_res-1,u_res-1);
+F = batchCross(dY_du, dY_dv);
 
 axis equal;
 hold on;
-warning("off","all");
-
+%{
 for i = 1:u_res
-    plot(Y(1,i,:),Y(2,i,:), "k");
+    plot(Y(1,1,:,i),Y(2,1,:,i), "k", "LineWidth", 0.1);
 end
+%}
+sv1 = sv;
+points = zeros(2,1,v_res-1);
 
-
-points = zeros(2,v_res);
-
-for i = 1:size(sv,2)
-  u=0;
-  solu = fsolve(@(u) F(u,sv(i)), u);
-  points(:,i) = y(solu,sv(i))(1:2);
+for i = 1:v_res-1
+  [sol, ind] = min(abs(F(1,1,i,:)));
+  points(:,:,i) = Y(:,:,i,ind);
 endfor
-plot(points(1,:),points(2,:), "r", "LineWidth", 3, "marker", "none");
+plot(points(1,1,:),points(2,1,:), "r", "LineWidth", 3, "marker", "none");
 
 
 
-filtered_points = zeros(2,size(points,2));
+%{
+filtered_points = zeros(2,1,size(points,3));
 l=1;
-for i=1:size(points,2)
+for i=1:size(points,3)
 
-  field = reshape(vecnorm(Y - points(:,i), 2, 1), u_res, v_res);
-  threshold = 0.001;
+  field = reshape(vecnorm(Y - points(:,:,i), 2, 1), u_res, v_res);
+  threshold = 0.0004;
   zero_mask = field < threshold;
   [labels, num_regions] = bwlabel(zero_mask, 8);
   num_regions
   if num_regions < 2
-    filtered_points(:,l) = points(:,i);
+    filtered_points(:,:,l) = points(:,:,i);
     l++;
   endif
 end
-filtered_points = resize(filtered_points, 2, l-1);
-plot(filtered_points(1,:),filtered_points(2,:), "g", "LineWidth", 3, "marker", "none");
-
+filtered_points = resize(filtered_points, 2, 1, l-1);
+plot(filtered_points(1,1,:),filtered_points(2,1,:), "g", "LineWidth", 3, "marker", "none");
+%}
 hold off;
