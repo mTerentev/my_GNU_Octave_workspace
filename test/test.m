@@ -2,8 +2,8 @@
 
 
 R = 1;
-ro = 1.2;
-ri = 0.8;
+ro = 1.4;
+ri = 0.6;
 alp = 20*pi/180;
 n = 5;
 rc = 0.05;
@@ -36,14 +36,14 @@ Rot = @(alp) reshape([
     reshape(sin(alp),1,1,s(alp)), reshape(cos(alp),1,1,s(alp));
   ],2,2,s(alp));
 
-rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))];
+rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*2*pi*R/n;
 
 vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v))];
 
-u_res = 2000;
-v_res = 2000;
+u_res = 3000;
+v_res = 3000;
 
-su = linspace(-pi/n, pi/n, u_res);
+su = linspace(-pi/n*2, pi/n*2, u_res);
 sv = linspace(-pi/n, pi/n, v_res);
 [u,v] = meshgrid(1:u_res, 1:v_res);
 [U, V] = meshgrid(su,sv);
@@ -77,38 +77,53 @@ F = batchCross(dY_du, dY_dv);
 
 axis equal;
 hold on;
-%{
-for i = 1:u_res
-    plot(Y(1,1,:,i),Y(2,1,:,i), "k", "LineWidth", 0.1);
-end
-%}
+
+for i=1:30:u_res
+  plot(Y(1,1,:,i),Y(2,1,:,i),"k")
+endfor
+
 sv1 = sv;
 points = zeros(2,1,v_res-1);
 
 for i = 1:v_res-1
   [sol, ind] = min(abs(F(1,1,i,:)));
   points(:,:,i) = Y(:,:,i,ind);
+
+##  field = zeros(size(Y));
+##  field(1,1,:,:) = Y(1,1,:,:) - points(1,1,i);
+##  field(2,1,:,:) = Y(2,1,:,:) - points(2,1,i);
+##  threshold = 0.01;
+##  zero_mask = field < threshold;
+
+##  [x,y] = find(zero_mask,1);
+##  dist = abs(x-i)+abs(y-ind)
+##  if dist < 100
+##    filtered_points(:,:,l) = points(:,:,i);
+##    l++;
+##  endif
 endfor
-plot(points(1,1,:),points(2,1,:), "r", "LineWidth", 3, "marker", "none");
-
-
-
 %{
 filtered_points = zeros(2,1,size(points,3));
 l=1;
-for i=1:size(points,3)
-
-  field = reshape(vecnorm(Y - points(:,:,i), 2, 1), u_res, v_res);
-  threshold = 0.0004;
-  zero_mask = field < threshold;
-  [labels, num_regions] = bwlabel(zero_mask, 8);
-  num_regions
-  if num_regions < 2
-    filtered_points(:,:,l) = points(:,:,i);
+for i=1:v_res-1
+  if vecnorm(points(:,1,i),2,1) < ro+0.0001
+    filtered_points(:,1,l) = points(:,1,i);
     l++;
   endif
-end
-filtered_points = resize(filtered_points, 2, 1, l-1);
-plot(filtered_points(1,1,:),filtered_points(2,1,:), "g", "LineWidth", 3, "marker", "none");
+endfor
 %}
+
+gear = zeros(2,1,size(points,3),n);
+
+for i=1:n
+  gear(:,:,:,i) = Rot(2*pi/n*i)*points(:,:,:);
+endfor
+
+gear = cat(1,gear);
+
+filtered_points = resize(filtered_points,2,1,l-1);
+
+plot(gear(1,1,:),gear(2,1,:), "g", "LineWidth", 3, "marker", "none");
+plot(points(1,1,:),points(2,1,:), "r", "LineWidth", 3, "marker", "none");
+
 hold off;
