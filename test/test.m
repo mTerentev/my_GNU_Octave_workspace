@@ -102,26 +102,49 @@ for i = 1:v_res-1
 ##    l++;
 ##  endif
 endfor
+disp("filtering");
+
+[unique_points, ia, ic] = uniquetol(reshape(Y,2,v_res*u_res), 1e-6, 'ByRows', true);
+
+% Step 3: Count multiplicity
+counts = accumarray(ic, 1);
+
+% Step 4: Classify points
+boundary_idx = find(counts == 1);  % Unique mappings
+interior_idx = find(counts > 1);   % Multiple mappings
+
+boundaryPoints = unique_points(boundary_idx, :);
+interiorPoints = unique_points(interior_idx, :);
+
+% Step 5: Refine boundary using α-shape
+if ~isempty(boundaryPoints)
+    filtered_points = alphaShape(boundaryPoints(:,1), boundaryPoints(:,2), 0.1);
+endif
+
 %{
 filtered_points = zeros(2,1,size(points,3));
 l=1;
+
+uniquetol()
+
 for i=1:v_res-1
   if vecnorm(points(:,1,i),2,1) < ro+0.0001
     filtered_points(:,1,l) = points(:,1,i);
     l++;
   endif
+  field = Y-points(:,1,i);
 endfor
+filtered_points = resize(filtered_points,2,1,l-1);
 %}
-
-gear = zeros(2,1,size(points,3),n);
+gear = zeros(2,1,size(filtered_points,3),n);
 
 for i=1:n
-  gear(:,:,:,i) = Rot(2*pi/n*i)*points(:,:,:);
+  gear(:,:,:,i) = Rot(2*pi/n*i)*filtered_points(:,:,:);
 endfor
 
 gear = cat(1,gear);
 
-filtered_points = resize(filtered_points,2,1,l-1);
+
 
 plot(gear(1,1,:),gear(2,1,:), "g", "LineWidth", 3, "marker", "none");
 plot(points(1,1,:),points(2,1,:), "r", "LineWidth", 3, "marker", "none");
