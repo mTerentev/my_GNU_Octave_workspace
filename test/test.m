@@ -31,8 +31,8 @@ Rot = @(alp) reshape([
 
 rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
-u_res = 2000;
-v_res = 2000;
+u_res = 3000;
+v_res = 3000;
 
 gear11 = Gear(n, R, rack, u_res, v_res);
 gear21 = Gear(2*n, 2*R, rack, u_res, v_res);
