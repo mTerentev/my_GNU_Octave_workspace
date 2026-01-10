@@ -82,71 +82,36 @@ for i=1:30:u_res
   plot(Y(1,1,:,i),Y(2,1,:,i),"k")
 endfor
 
-sv1 = sv;
 points = zeros(2,1,v_res-1);
-
 for i = 1:v_res-1
   [sol, ind] = min(abs(F(1,1,i,:)));
   points(:,:,i) = Y(:,:,i,ind);
-
-##  field = zeros(size(Y));
-##  field(1,1,:,:) = Y(1,1,:,:) - points(1,1,i);
-##  field(2,1,:,:) = Y(2,1,:,:) - points(2,1,i);
-##  threshold = 0.01;
-##  zero_mask = field < threshold;
-
-##  [x,y] = find(zero_mask,1);
-##  dist = abs(x-i)+abs(y-ind)
-##  if dist < 100
-##    filtered_points(:,:,l) = points(:,:,i);
-##    l++;
-##  endif
 endfor
-disp("filtering");
 
-[unique_points, ia, ic] = uniquetol(reshape(Y,2,v_res*u_res), 1e-6, 'ByRows', true);
-
-% Step 3: Count multiplicity
-counts = accumarray(ic, 1);
-
-% Step 4: Classify points
-boundary_idx = find(counts == 1);  % Unique mappings
-interior_idx = find(counts > 1);   % Multiple mappings
-
-boundaryPoints = unique_points(boundary_idx, :);
-interiorPoints = unique_points(interior_idx, :);
-
-% Step 5: Refine boundary using α-shape
-if ~isempty(boundaryPoints)
-    filtered_points = alphaShape(boundaryPoints(:,1), boundaryPoints(:,2), 0.1);
-endif
-
-%{
-filtered_points = zeros(2,1,size(points,3));
+filtered_points = zeros(2,1,v_res-1);
 l=1;
+k=1;
+while true
 
-uniquetol()
-
-for i=1:v_res-1
-  if vecnorm(points(:,1,i),2,1) < ro+0.0001
-    filtered_points(:,1,l) = points(:,1,i);
-    l++;
+  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 0.01, 1, "last");
+  if ind - k > 5
+    k += ind-k;
   endif
-  field = Y-points(:,1,i);
-endfor
-filtered_points = resize(filtered_points,2,1,l-1);
-%}
-gear = zeros(2,1,size(filtered_points,3),n);
+  filtered_points(:,:,l) = points(:,:,k);
+  l++;
+  k++;
+  if k > v_res-1 break; endif
+endwhile
+filtered_points = resize(filtered_points, 2, 1, l-1);
 
+
+plot(filtered_points(1,1,:), filtered_points(2,1,:), "g", "LineWidth", 3);
+
+gear = zeros(2,1,size(filtered_points,3),n);
 for i=1:n
   gear(:,:,:,i) = Rot(2*pi/n*i)*filtered_points(:,:,:);
 endfor
 
 gear = cat(1,gear);
-
-
-
-plot(gear(1,1,:),gear(2,1,:), "g", "LineWidth", 3, "marker", "none");
-plot(points(1,1,:),points(2,1,:), "r", "LineWidth", 3, "marker", "none");
-
+plot(gear(1,:,:), gear(2,:,:));
 hold off;
