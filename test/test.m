@@ -1,26 +1,18 @@
-
-
-
 R = 1;
 ro = 1.4;
 ri = 0.6;
 alp = 20*pi/180;
 n = 5;
-rc = 0.05;
+rc = 0.1;
 
-tf = @(x) (0.25-x)/tan(alp);
-
-cf = @(x,y,t,s) s*sqrt(rc^2-(t-x).^2) + y;
-
-tup=(ro-R)*n/(2*pi*R);
-tdown=(ri-R)*n/(2*pi*R);
-x1 = 0.25-(tup-rc)*tan(alp)-rc/cos(alp);
+tup=(ro-R)*n/(pi*R);
+tdown=(ri-R)*n/(pi*R);
+x1 = 0.5-(tup-rc)*tan(alp)-rc/cos(alp);
 x2 = x1+rc*cos(alp);
-x4 = 0.25-(tdown+rc)*tan(alp)+rc/cos(alp);
+x4 = 0.5-(tdown+rc)*tan(alp)+rc/cos(alp);
 x3 = x4-rc*cos(alp);
 
-
-tf = @(x) (0.25-x)/tan(alp);
+tf = @(x) (0.5-x)/tan(alp);
 cf = @(x,y,t,s) s*sqrt(rc^2-(t-x).^2) + y;
 
 ftooth = @(t) (t<x1).*tup + ...
@@ -36,17 +28,16 @@ Rot = @(alp) reshape([
     reshape(sin(alp),1,1,s(alp)), reshape(cos(alp),1,1,s(alp));
   ],2,2,s(alp));
 
-rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*2*pi*R/n;
+rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
-vrshp = @(v) [reshape(v(1),1,s(v)); reshape(v(2),1,s(v))];
+u_res = 5000;
+v_res = 5000;
 
-u_res = 3000;
-v_res = 3000;
-
-su = linspace(-pi/n*2, pi/n*2, u_res);
-sv = linspace(-pi/n, pi/n, v_res);
+su = linspace(-2*pi/n, 2*pi/n, u_res);
+sv = linspace(-1, 1, v_res);
 [u,v] = meshgrid(1:u_res, 1:v_res);
 [U, V] = meshgrid(su,sv);
+
 
 d = @(s) (s(end)-s(1))/size(s,2);
 Rot_field = Rot(su);
@@ -79,7 +70,7 @@ axis equal;
 hold on;
 
 for i=1:30:u_res
-  plot(Y(1,1,:,i),Y(2,1,:,i),"k")
+  %plot(Y(1,1,:,i),Y(2,1,:,i),"k")
 endfor
 
 points = zeros(2,1,v_res-1);
@@ -105,7 +96,7 @@ endwhile
 filtered_points = resize(filtered_points, 2, 1, l-1);
 
 
-plot(filtered_points(1,1,:), filtered_points(2,1,:), "g", "LineWidth", 3);
+%plot(filtered_points(1,1,:), filtered_points(2,1,:), "g", "LineWidth", 3);
 
 gear = zeros(2,1,size(filtered_points,3),n);
 for i=1:n
