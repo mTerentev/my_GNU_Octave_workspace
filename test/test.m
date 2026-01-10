@@ -1,8 +1,8 @@
 R = 1;
-ro = 1.4;
-ri = 0.6;
+ro = 1.2;
+ri = 0.8;
 alp = 20*pi/180;
-n = 5;
+n = 8;
 rc = 0.1;
 
 tup=(ro-R)*n/(pi*R);
@@ -49,14 +49,23 @@ function rgb = hex2rgb(hex)
     rgb = sscanf(hex, '%2x%2x%2x', [1, 3]) / 255;
 end
 
-p1 = fill(gear1(1,:,:), gear1(2,:,:), hex2rgb("#29D69A"));
-p2 = fill(gear2(1,:,:), gear2(2,:,:), hex2rgb("#D69A29"));
-p3 = fill(rack1(1,:),rack1(2,:), hex2rgb("#9A29D6"));
+axis fix;
+axis equal;
+hold on;
+axis([-6*R 6*R -3*R 3*R]);
 
-while true
-  for i=1:1000
-    alp1 = i/1000*2*pi/n;
-    alp2 = -0.5*alp1;
+p1 = fill(gear11(1,:,:), gear11(2,:,:), hex2rgb("#29D69A"));
+p2 = fill(gear21(1,:,:), gear21(2,:,:), hex2rgb("#D69A29"));
+p3 = fill(rack11(1,:),rack11(2,:), hex2rgb("#9A29D6"));
+
+fps = 30;
+rec1 = zeros(fps,2,size(gear11,2));
+rec2 = zeros(fps,2,size(gear21,2));
+rec3 = zeros(fps,2,size(rack11,2));
+
+for i=1:fps
+    alp1 = i/fps*2*pi/n;
+    alp2 = -0.5*alp1 + pi/n/2 + pi/2;
 
     gear1 = Rot(alp1)*gear11;
     gear2 = Rot(alp2)*gear21;
@@ -65,10 +74,19 @@ while true
     gear2 += [-2*R; 0];
     rack1 = rack11 + [0; alp1*R];
 
-    set(p1, "XData", gear1(1,:,:), "YData", gear1(2,:,:));
-    set(p2, "XData", gear2(1,:,:), "YData", gear2(2,:,:));
-    set(p3, "XData", rack1(1,:,:), "YData", rack1(2,:,:));
+    rec1(i,:,:) = gear1;
+    rec2(i,:,:) = gear2;
+    rec3(i,:,:) = rack1;
+  endfor
+
+while true
+  for i=1:fps
+    set(p1, "XData", rec1(i,1,:)(:), "YData", rec1(i,2,:)(:));
+    set(p2, "XData", rec2(i,1,:)(:), "YData", rec2(i,2,:)(:));
+    set(p3, "XData", rec3(i,1,:)(:), "YData", rec3(i,2,:)(:));
 
     drawnow;
+    pause(1/fps);
+
   endfor
 endwhile
