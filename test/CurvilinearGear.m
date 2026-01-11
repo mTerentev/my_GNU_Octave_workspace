@@ -2,7 +2,7 @@ function gear = CurvilinearGear(n, R, rack, u_res, v_res)
 global Rot
 
 su = linspace(-pi, pi, u_res);
-sv = linspace(-n, n, v_res);
+sv = linspace(-0.7*n, 1.3*n, v_res);
 [u,v] = meshgrid(1:u_res, 1:v_res);
 [U, V] = meshgrid(su,sv);
 
@@ -12,7 +12,7 @@ Rot_field = Rot(su);
 
 X = rack(sv);
 
-X1 = reshape([reshape(R*ones(v_res,u_res)+U/5,1,u_res*v_res); reshape(-(U/5+R).*U,1,u_res*v_res)],2,1,v_res,u_res);
+X1 = reshape([reshape(R*ones(v_res,u_res)+U/5,1,u_res*v_res); reshape(-(R.*U+R.*U.*U./10),1,u_res*v_res)],2,1,v_res,u_res);
 
 MRot=reshape(Rot_field(:,:,u),2,2,v_res,u_res);
 
@@ -32,7 +32,7 @@ endfunction
 Y = batchMTimesV(MRot, M1 + X1);
 
 for i=1:u_res
-  plot(Y(1,1,:,i),Y(2,1,:,i), "k");
+  %plot(Y(1,1,:,i),Y(2,1,:,i), "k");
 endfor
 
 dY_du = resize(diff(Y,1,4)/d(su),2,1,v_res-1,u_res-1);
@@ -49,21 +49,20 @@ for i = 1:v_res-1
   points(:,:,i) = Y(:,:,i,ind);
 endfor
 
-%plot(points(1,1,:),points(2,1,:), "r");
+%plot(points(1,1,:),points(2,1,:), "r", "linewidth", 3);
 
 filtered_points = zeros(2,1,v_res-1);
 l=1;
 k=1;
 while true
 
-  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 2*max(d(sv),d(su)), 1, "last");
-  if ind - k > 10 & ind - k < v_res/2
+  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 10*max(d(sv),d(su)), 1, "last");
+  if ind - k > 3
     k += ind-k;
   endif
   filtered_points(:,:,l) = points(:,:,k);
   l++;
   k++;
-  k
   if k > v_res-1 break; endif
 endwhile
 filtered_points = resize(filtered_points, 2, 1, l-1);

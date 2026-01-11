@@ -1,6 +1,6 @@
 R = 1;
-ro = 1.2;
-ri = 0.8;
+ro = 1;
+ri = 1;
 alp = 20*pi/180;
 n = 10;
 rc = 0.1;
@@ -31,15 +31,53 @@ Rot = @(alp) reshape([
 
 rack = @(t) [reshape(ftooth(abs(t-2-2*floor(t/2-0.5))),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
-u_res = 100;
-v_res = 1000;
+u_res = 3000;
+v_res = 3000;
 
-%axis fix;
 axis equal;
 hold on;
-sv = linspace(-n/2, n/2, v_res);
+axis([-3*R 3*R -2*R 2*R]);
 
-gear = CurvilinearGear(n, R, rack, u_res, v_res);
+%_gear = CurvilinearGear(n, R, rack, u_res, v_res);
 
-%fill(gear(1,:),gear(2,:),"r");
+p1 = fill(gear1(1,:),gear1(2,:),"r");
+p2 = fill(gear2(1,:),gear2(2,:),"b");
 
+p3 = plot([0,0],[-2,2],"g", "linewidth", 3);
+p4 = plot([0,0],[-2,2],"c", "linewidth", 3);
+
+frames = 10000;
+
+while 1
+  alp1 = 0;
+  alp2 = pi;
+  for i=1:frames
+    t = i/frames - 0.5;
+
+    x = pi/5 * 2*t;
+
+    set(p3, 'xdata', [x,x]);
+
+    alp1 = 5*x + pi;
+    w1 = 2*pi;
+    lin = 2*pi*(R-x);
+
+    alp2 = 2*pi*(R-pi/5 * 2*t)/(R+pi/5 * 2*t)/frames;
+    %alp2 = -2 * pi * t + 10 * R * log(5 * R + 2 * pi * t)- 4*pi;
+
+    x2 = alp2/5;
+
+    set(p4, 'xdata', [x2,x2]);
+
+    gear1 = Rot(alp1)*_gear;
+    gear2 = Rot(-alp2)*_gear;
+
+    gear1 += [R; 0];
+    gear2 += [-R-(x2-x);0];
+
+    set(p1, "xdata", gear1(1,:), "ydata", gear1(2,:));
+    set(p2, "xdata", gear2(1,:), "ydata", gear2(2,:));
+
+    drawnow;
+  endfor
+endwhile
