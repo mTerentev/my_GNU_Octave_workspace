@@ -52,48 +52,35 @@ _gear = CurvilinearGear(n, R, rack, transform, su, sv);
 p1 = fill(_gear(1,:),_gear(2,:),"r");
 p2 = fill(_gear(1,:),_gear(2,:),"b");
 
-p3 = plot([0,0],[-2,2],"g", "linewidth", 3);
-p4 = plot([0,0],[-2,2],"c", "linewidth", 3);
+%p3 = plot([0,0],[-2,2],"g", "linewidth", 3);
+%p4 = plot([0,0],[-2,2],"c", "linewidth", 3);
 
-frames = 10000;
+frames = 1000;
 
 while 1
-  alp1 = 0;
-  alp2 = pi;
   for i=1:frames
-    t = i/frames - 0.5;
+    t = i/frames;
+    c = 2*pi;
+    w = 2*pi;
+    alp1 = -w*t;
+    lin1 = -transform{2}(-alp1-pi) + transform{2}(-pi);
+    lin2 = c - lin1
+    alp2 = fsolve(@(ang) -transform{2}(-ang) + transform{2}(-pi) - lin2, ang=0);
 
-    lin1 = -2*pi*t - .7*n;
+    x = -transform{1}(-alp1-pi) + R;
 
-    lin2 = -2*pi*(-t) - 1.3*n;
+    %set(p3, 'xdata', [x,x]);
 
-    %alp1^2*R/10 + alp1*R - t*lin = 0;
+    x2 = transform{1}(-alp2);
 
-    alp1 = (-R + sqrt(R^2 - 4 * R/10 * lin1))/(2 * R/10);
-
-    alp2 = (-R + sqrt(R^2 - 4 * R/10 * lin2))/(2 * R/10);
-
-    x = pi/5 * 2*t;
-
-    set(p3, 'xdata', [x,x]);
-
-    %alp1 = 5*x + pi;
-    %w1 = 2*pi;
-    %lin = 2*pi*(R-x);
-
-    %alp2 = 2*pi*(R-pi/5 * 2*t)/(R+pi/5 * 2*t)/frames;
-    %alp2 = -2 * pi * t + 10 * R * log(5 * R + 2 * pi * t)- 4*pi;
-
-    x2 = alp2/5;
-
-    set(p4, 'xdata', [x2,x2]);
+    %set(p4, 'xdata', [x2,x2]);
 
     gear1 = Rot(alp1)*_gear;
-    gear2 = Rot(alp2)*_gear;
+    gear2 = Rot(alp2-0.18)*_gear;
 
     gear1 += [R; 0];
-    %gear2 += [-R-(x2-x);0];
-    gear2 += [-R;0];
+    gear2 += [-(x2-x);0];
+    %gear2 += [-R;0];
 
     set(p1, "xdata", gear1(1,:), "ydata", gear1(2,:));
     set(p2, "xdata", gear2(1,:), "ydata", gear2(2,:));
