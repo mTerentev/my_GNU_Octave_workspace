@@ -1,21 +1,20 @@
-function gear = CurvilinearGear(n, R, rack, u_res, v_res)
+function gear = CurvilinearGear(n, R, rack_func, transform_func, su, sv)
 global Rot
 
-su = linspace(-pi, pi, u_res);
-sv = linspace(-0.7*n, 1.3*n, v_res);
+u_res = size(su,2);
+v_res = size(sv,2);
+
 [u,v] = meshgrid(1:u_res, 1:v_res);
 [U, V] = meshgrid(su,sv);
 
-
 d = @(s) (s(end)-s(1))/size(s,2);
-Rot_field = Rot(su);
 
-X = rack(sv);
+Rot_field = Rot(transform_func{3}(su));
 
-X1 = reshape([reshape(R*ones(v_res,u_res)+U/5,1,u_res*v_res); reshape(-(R.*U+R.*U.*U./10),1,u_res*v_res)],2,1,v_res,u_res);
+X = rack_func(sv);
 
 MRot=reshape(Rot_field(:,:,u),2,2,v_res,u_res);
-
+X1 = reshape([transform_func{1}(U)(:)'; transform_func{2}(U)(:)'],[2,1,size(U)]);
 M1=reshape(X(:,v),2,1,v_res,u_res);
 
 function result = batchMTimesV(A,B)
