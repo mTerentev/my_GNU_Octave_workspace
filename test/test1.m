@@ -30,6 +30,10 @@ Rot = @(alp) reshape([
   ],2,2,s(alp));
 
 rack = @(t) [reshape(ftooth(abs(t-2-2*floor(t/2-0.5))),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
+rack1 = @(t) rack(t);
+rack2 = @(t) [-rack(t)(1,:); rack(t)(2,:)];
+
+
 
 u_res = 3000;
 v_res = 3000;
@@ -47,13 +51,18 @@ transform = {tr_x, tr_y, tr_rot};
 su = linspace(-pi, pi, u_res);
 sv = linspace(-0.7*n, 1.3*n, v_res);
 
-_gear = CurvilinearGear(n, R, rack, transform, su, sv);
+%_gear1 = CurvilinearGear(n, R, rack1, transform, su, sv);
+%_gear2 = CurvilinearGear(n, R, rack2, transform, su, sv);
+
 
 p1 = fill(_gear(1,:),_gear(2,:),"r");
 p2 = fill(_gear(1,:),_gear(2,:),"b");
 
-%p3 = plot([0,0],[-2,2],"g", "linewidth", 3);
-%p4 = plot([0,0],[-2,2],"c", "linewidth", 3);
+_rack1 = rack1(sv);
+_rack2 = rack2(sv);
+
+%p3 = plot(_rack(1,:),_rack(2,:),"g", "linewidth", 3);
+%p4 = plot(rack(sv)(1,:),rack(sv)(2,:),"c", "linewidth", 3);
 
 frames = 1000;
 
@@ -63,20 +72,18 @@ while 1
     c = 2*pi;
     w = 2*pi;
     alp1 = -w*t;
-    lin1 = -transform{2}(-alp1-pi) + transform{2}(-pi);
-    lin2 = c - lin1
+    lin1 = -transform{2}(-alp1-pi) + transform{2}(-pi)+0.1;
+    lin2 = c - lin1;
     alp2 = fsolve(@(ang) -transform{2}(-ang) + transform{2}(-pi) - lin2, ang=0);
 
     x = -transform{1}(-alp1-pi) + R;
-
-    %set(p3, 'xdata', [x,x]);
 
     x2 = transform{1}(-alp2);
 
     %set(p4, 'xdata', [x2,x2]);
 
-    gear1 = Rot(alp1)*_gear;
-    gear2 = Rot(alp2-0.18)*_gear;
+    gear1 = Rot(alp1)*_gear1;
+    gear2 = Rot(alp2)*_gear2;
 
     gear1 += [R; 0];
     gear2 += [-(x2-x);0];
@@ -84,6 +91,14 @@ while 1
 
     set(p1, "xdata", gear1(1,:), "ydata", gear1(2,:));
     set(p2, "xdata", gear2(1,:), "ydata", gear2(2,:));
+
+    rack1 = _rack1 + [-R + transform{1}(-pi-alp1); transform{2}(-pi-alp1)];
+    rack1 = Rot(-pi)*rack1;
+    %set(p3, 'xdata', rack1(1,:), "ydata", rack1(2,:));
+
+    rack2 = _rack2 + [-(x2-x) + transform{1}(-alp2); transform{2}(-alp2)];
+    rack2 = Rot(0)*rack2;
+    %set(p4, 'xdata', rack2(1,:), "ydata", rack2(2,:));
 
     drawnow;
   endfor
