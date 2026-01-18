@@ -55,8 +55,8 @@ l=1;
 k=1;
 while true
 
-  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 10*max(d(sv),d(su)), 1, "last");
-  if ind - k > 3
+  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 2*max(d(sv),d(su)), 1, "last");
+  if ind - k > 1
     k += ind-k;
   endif
   filtered_points(:,:,l) = points(:,:,k);

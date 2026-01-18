@@ -35,8 +35,8 @@ rack2 = @(t) [-rack(t)(1,:); rack(t)(2,:)];
 
 
 
-u_res = 3000;
-v_res = 3000;
+u_res = 10000;
+v_res = 10000;
 
 axis equal;
 hold on;
@@ -49,55 +49,53 @@ tr_rot = @(t) t;
 transform = {tr_x, tr_y, tr_rot};
 
 su = linspace(-pi, pi, u_res);
-sv = linspace(-0.7*n, 1.3*n, v_res);
+sv = linspace(-0.7*n, 1.22*n, v_res);
 
-%_gear1 = CurvilinearGear(n, R, rack1, transform, su, sv);
-%_gear2 = CurvilinearGear(n, R, rack2, transform, su, sv);
+_gear1 = CurvilinearGear(n, R, rack1, transform, su, sv);
+_gear2 = CurvilinearGear(n, R, rack2, transform, su, sv);
 
 
-p1 = fill(_gear(1,:),_gear(2,:),"r");
-p2 = fill(_gear(1,:),_gear(2,:),"b");
+p1 = fill(_gear1(1,:),_gear1(2,:),"r");
+p2 = fill(_gear2(1,:),_gear2(2,:),"b");
 
 _rack1 = rack1(sv);
 _rack2 = rack2(sv);
 
-%p3 = plot(_rack(1,:),_rack(2,:),"g", "linewidth", 3);
-%p4 = plot(rack(sv)(1,:),rack(sv)(2,:),"c", "linewidth", 3);
+%p3 = plot(_rack1(1,:),_rack1(2,:),"g", "linewidth", 3);
+%p4 = plot(_rack2(1,:),_rack2(2,:),"c", "linewidth", 3);
 
 frames = 1000;
 
+beta = atan(0.2);
+
 while 1
-  for i=1:frames
+  for i=1:frames-10
     t = i/frames;
-    c = 2*pi;
     w = 2*pi;
     alp1 = -w*t;
-    lin1 = -transform{2}(-alp1-pi) + transform{2}(-pi)+0.1;
-    lin2 = c - lin1;
-    alp2 = fsolve(@(ang) -transform{2}(-ang) + transform{2}(-pi) - lin2, ang=0);
+    lin1 = -transform{2}(-alp1-pi) + transform{2}(-pi) + 0.09;
+    alp2 = fsolve(@(ang) +transform{2}(-ang) - transform{2}(pi) - lin1, ang=0);
 
-    x = -transform{1}(-alp1-pi) + R;
+    x = -transform{1}(-alp1-pi-beta) + R;
 
     x2 = transform{1}(-alp2);
-
-    %set(p4, 'xdata', [x2,x2]);
 
     gear1 = Rot(alp1)*_gear1;
     gear2 = Rot(alp2)*_gear2;
 
     gear1 += [R; 0];
     gear2 += [-(x2-x);0];
-    %gear2 += [-R;0];
-
     set(p1, "xdata", gear1(1,:), "ydata", gear1(2,:));
     set(p2, "xdata", gear2(1,:), "ydata", gear2(2,:));
 
-    rack1 = _rack1 + [-R + transform{1}(-pi-alp1); transform{2}(-pi-alp1)];
-    rack1 = Rot(-pi)*rack1;
+    rack1 = _rack1 + [transform{1}(-pi-alp1-beta); transform{2}(-pi-alp1-beta)];
+    rack1 = Rot(-pi-beta)*rack1;
+    rack1 += [R;0];
     %set(p3, 'xdata', rack1(1,:), "ydata", rack1(2,:));
 
-    rack2 = _rack2 + [-(x2-x) + transform{1}(-alp2); transform{2}(-alp2)];
-    rack2 = Rot(0)*rack2;
+    rack2 = _rack2 + [transform{1}(-alp2-beta); transform{2}(-alp2-beta)];
+    rack2 = Rot(-beta)*rack2;
+    rack2 += [-(x2-x);0];
     %set(p4, 'xdata', rack2(1,:), "ydata", rack2(2,:));
 
     drawnow;
