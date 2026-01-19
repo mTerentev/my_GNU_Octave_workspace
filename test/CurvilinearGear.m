@@ -1,6 +1,8 @@
 function gear = CurvilinearGear(n, R, rack_func, transform_func, su, sv)
 global Rot
 
+disp("function");
+
 u_res = size(su,2);
 v_res = size(sv,2);
 
@@ -34,6 +36,8 @@ for i=1:u_res
   %plot(Y(1,1,:,i),Y(2,1,:,i), "k");
 endfor
 
+disp("envelope");
+
 dY_du = resize(diff(Y,1,4)/d(su),2,1,v_res-1,u_res-1);
 dY_dv = resize(diff(Y,1,3)/d(sv),2,1,v_res-1,u_res-1);
 F = batchCross(dY_du, dY_dv);
@@ -49,6 +53,8 @@ for i = 1:v_res-1
 endfor
 
 %plot(points(1,1,:),points(2,1,:), "r", "linewidth", 3);
+
+disp("filtration");
 
 filtered_points = zeros(2,1,v_res-1);
 l=1;
