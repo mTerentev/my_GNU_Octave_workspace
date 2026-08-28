@@ -32,10 +32,6 @@ endfunction
 
 Y = batchMTimesV(MRot, M1 + X1);
 
-for i=1:u_res
-  %plot(Y(1,1,:,i),Y(2,1,:,i), "k");
-endfor
-
 disp("envelope");
 
 dY_du = resize(diff(Y,1,4)/d(su),2,1,v_res-1,u_res-1);
@@ -48,7 +44,7 @@ hold on;
 
 points = zeros(2,1,v_res-1);
 for i = 1:v_res-1
-  [sol, ind] = min(abs(F(1,1,i,:)));
+  [sol, ind] = min(abs(F(1,1,i,:)))
   points(:,:,i) = Y(:,:,i,ind);
 endfor
 
@@ -61,7 +57,7 @@ l=1;
 k=1;
 while true
 
-  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 2*max(d(sv),d(su)), 1, "last");
+  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 3*max(d(sv),d(su)), 1, "last");
   if ind - k > 1
     k += ind-k;
   endif

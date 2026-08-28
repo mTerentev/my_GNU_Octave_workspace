@@ -43,24 +43,66 @@ for i = 1:v_res-1
   points(:,:,i) = Y(:,:,i,ind);
 endfor
 
+
 filtered_points = zeros(2,1,v_res-1);
 l=1;
 k=1;
-while true
+function res = crs(x,y)
+  res = x(1)*y(2)-y(1)*x(2);
+endfunction
 
-  [sol, ind] = find(vecnorm(points-points(:,:,k)) < 0.01, 1, "last");
-  if ind - k > 5
-    k += ind-k;
-  endif
+function bool = isIntersecting(a1,b1,a2,b2)
+  % bool = crs(a2-a1, b2-a1);
+  bool = (crs(a2-a1, b2-a1) * crs(a2-b1, b2-b1)) < 0 && (crs(a1-a2, b1-a2) * crs(a1-b2, b1-b2)) < 0;
+endfunction
+
+function res = Intersection(a1,b1,a2,b2)
+  t = inv([(a1-b1),(a2-b2)])*(b2-b1);
+  res = a1*t(1)+b1*(1-t(1));
+endfunction
+
+% Intersection([1;1],[0;0],[0;1],[1;0])
+
+% intersecting_points = zeros(2,1,v_res-1);
+while true
+  for j = k+1 : k+100-2
+    if j > v_res-2 break; endif  
+    if isIntersecting(points(:,1,k),points(:,1,k+1),points(:,1,j),points(:,1,j+1))
+      filtered_points(:,:,l) = points(:,:,k);
+      l++;
+      filtered_points(:,1,l) = Intersection(points(:,1,k),points(:,1,k+1),points(:,1,j),points(:,1,j+1));
+      l++;
+      k=j+1;
+      break;
+    endif
+  endfor
   filtered_points(:,:,l) = points(:,:,k);
   l++;
   k++;
-  if k > v_res-1 break; endif
+  if k > v_res-1 break; endif  
 endwhile
+% plot(intersecting_points(1,:,:), intersecting_points(2,:,:), "o");
+
+% while true
+
+%   [sol, ind] = find(vecnorm(points-points(:,:,k)) < 0.01, 1, "last");
+%   if ind - k > 5
+%     k += ind-k;
+%   endif
+%   filtered_points(:,:,l) = points(:,:,k);
+%   l++;
+%   k++;
+%   if k > v_res-1 break; endif
+% endwhile
 filtered_points = resize(filtered_points, 2, 1, l-1);
+plot(points(1,:,:), points(2,:,:), "linestyle", "-", "marker", "o");
+plot(filtered_points(1,:,:), filtered_points(2,:,:), "color", "red", "linewidth", 3);
+waitfor(gcf);
+drawnow;
 
 gear = [];
 for i=1:n
   gear = [gear, Rot(2*pi/n*i)*filtered_points(:,:,:)];
 endfor
 endfunction
+

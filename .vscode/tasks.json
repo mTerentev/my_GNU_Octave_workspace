@@ -1,0 +1,40 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Octave File",
+            "type": "shell",
+            "command": "/usr/bin/octave-cli",
+            "args": [
+                "--no-gui",
+                "--quiet",
+                "${file}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Octave Selection",
+            "type": "shell",
+            "command": "/usr/bin/octave-cli",
+            "args": [
+                "--no-gui",
+                "--quiet",
+                "--eval",
+                "${selectedText}"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

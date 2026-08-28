@@ -2,7 +2,7 @@ R = 1;
 ro = 1.2;
 ri = 0.8;
 alp = 20*pi/180;
-n = 8;
+n = 5;
 rc = 0.1;
 
 tup=(ro-R)*n/(pi*R);
@@ -31,11 +31,13 @@ Rot = @(alp) reshape([
 
 rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
-u_res = 3000;
-v_res = 3000;
+u_res = 1000;
+v_res = 1000;
 
 gear11 = Gear(n, R, rack, u_res, v_res);
 gear21 = Gear(2*n, 2*R, rack, u_res, v_res);
+
+
 rack11 = [];
 for i=-3:3
   rack11 = [rack11, rack(-1:0.01:1)+[0;i*2*pi*R/n]];
@@ -49,7 +51,6 @@ function rgb = hex2rgb(hex)
     rgb = sscanf(hex, '%2x%2x%2x', [1, 3]) / 255;
 end
 
-axis fix;
 axis equal;
 hold on;
 axis([-6*R 6*R -3*R 3*R]);
@@ -58,13 +59,14 @@ p1 = fill(gear11(1,:,:), gear11(2,:,:), hex2rgb("#29D69A"));
 p2 = fill(gear21(1,:,:), gear21(2,:,:), hex2rgb("#D69A29"));
 p3 = fill(rack11(1,:),rack11(2,:), hex2rgb("#9A29D6"));
 
-fps = 30;
+fps = 60;
+time = 10;
 rec1 = zeros(fps,2,size(gear11,2));
 rec2 = zeros(fps,2,size(gear21,2));
 rec3 = zeros(fps,2,size(rack11,2));
 
-for i=1:fps
-    alp1 = i/fps*2*pi/n;
+for i=1:(fps*time)
+    alp1 = i/fps/time*2*pi/n;
     alp2 = -0.5*alp1 + pi/n/2 + pi/2;
 
     gear1 = Rot(alp1)*gear11;
@@ -80,7 +82,7 @@ for i=1:fps
   endfor
 
 while true
-  for i=1:fps
+  for i=1:(fps*time)
     set(p1, "XData", rec1(i,1,:)(:), "YData", rec1(i,2,:)(:));
     set(p2, "XData", rec2(i,1,:)(:), "YData", rec2(i,2,:)(:));
     set(p3, "XData", rec3(i,1,:)(:), "YData", rec3(i,2,:)(:));
