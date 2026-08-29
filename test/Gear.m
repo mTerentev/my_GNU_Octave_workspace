@@ -1,7 +1,9 @@
 function gear = Gear(n, R, rack, u_res, v_res)
 global Rot
 
-su = linspace(-2*pi/n, 2*pi/n, u_res);
+"Solve Envelope"
+
+su = linspace(-3*pi/n, 3*pi/n, u_res);
 sv = linspace(-1, 1, v_res);
 [u,v] = meshgrid(1:u_res, 1:v_res);
 [U, V] = meshgrid(su,sv);
@@ -28,23 +30,24 @@ function result = batchCross(u,v)
   result(1,1,:,:) = u(1,1,:,:).*v(2,1,:,:) - u(2,1,:,:).*v(1,1,:,:);
 endfunction
 
+"Solve Y"
 Y = batchMTimesV(MRot, M1 + X1);
-
+"Solve F"
 dY_du = resize(diff(Y,1,4)/d(su),2,1,v_res-1,u_res-1);
 dY_dv = resize(diff(Y,1,3)/d(sv),2,1,v_res-1,u_res-1);
 F = batchCross(dY_du, dY_dv);
 
 axis equal;
 hold on;
-
-%Solve Envelope
+"Solve envelope"
 points = zeros(2,1,v_res-1);
 for i = 1:v_res-1
   [sol, ind] = min(abs(F(1,1,i,:)));
   points(:,:,i) = Y(:,:,i,ind);
 endfor
 
-%Sparse points evenly
+"Sparse points evenly"
+
 TotalL = 0;
 for i = 1: v_res-2
   TotalL += vecnorm(points(:,1,i+1)-points(:,1,i));
@@ -52,11 +55,12 @@ endfor
 
 points1 = zeros(2,1,v_res);
 l=1;
+q=1;
 st_point = points(:,:,1);
-for i = 1:1000
-  path=TotalL/v_res;
+for i = 1:v_res
+  path=TotalL/500;
   L = vecnorm(points(:,1,l+1)-st_point);
-  while path > L
+  while path > L && l < v_res-2
     l++;
     path -= L;
     st_point = points(:,:,l);
@@ -64,15 +68,14 @@ for i = 1:1000
   endwhile
   st_point = (points(:,1,l+1)-st_point)/L*path + st_point;
   points1(:,:,i) = st_point;
-  % if vecnorm(st_point-points(:,:,v_res-1)) < 0.01 break endif
+  q = i;
+  if vecnorm(st_point-points(:,:,v_res-1)) < 0.01; break endif
 endfor
 
-% plot(points(1,:,:), points(2,:,:));
-% plot(points1(1,:,:), points1(2,:,:), "linestyle", "-", "marker", "o");
-% waitfor(gcf);
-% drawnow;
+points1 = resize(points1, 2, 1, q-1);
 
 points = points1;
+% q = v_res;
 
 function res = crs(x,y)
   res = x(1)*y(2)-y(1)*x(2);
@@ -88,13 +91,22 @@ function res = Intersection(a1,b1,a2,b2)
   res = a1*t(1)+b1*(1-t(1));
 endfunction
 
-%Filter self-intersections out
-filtered_points = zeros(2,1,v_res-1);
+"Filter self-intersections out"
+
+filtered_points = zeros(2,1,q-1);
 l=1;
 k=1;
 while true
-  for j = k+10 : k+200
-    if j > v_res-2 || j <= 0 break; endif  
+  ind=k;
+  mask = reshape(abs(points(1,:,:)-points(1,:,k)) < TotalL/500*2  & abs(points(2,:,:)-points(2,:,k)) < TotalL/500*2, q-1, 1);
+  mask(v_res-1) = 0;
+  mask(v_res) = 1;
+  while mask(ind++); endwhile
+  while !mask(ind++); endwhile
+  if ind < v_res
+
+  for j = ind : ind+50
+    if j > q-2 || j <= 0 break; endif  
     if isIntersecting(points(:,1,k),points(:,1,k+1),points(:,1,j),points(:,1,j+1))
       filtered_points(:,:,l) = points(:,:,k);
       l++;
@@ -104,10 +116,12 @@ while true
       break;
     endif
   endfor
+
+  endif
   filtered_points(:,:,l) = points(:,:,k);
   l++;
   k++;
-  if k > v_res-2 break; endif  
+  if k > q-2 break; endif  
 endwhile
 
 filtered_points = resize(filtered_points, 2, 1, l-1);
@@ -120,5 +134,7 @@ gear = [];
 for i=1:n
   gear = [gear, Rot(2*pi/n*i)*filtered_points(:,:,:)];
 endfor
-endfunction
 
+gear = [gear, gear(:,1)];
+
+endfunction
