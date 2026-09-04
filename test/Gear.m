@@ -58,7 +58,7 @@ l=1;
 q=1;
 st_point = points(:,:,1);
 for i = 1:v_res
-  path=TotalL/500;
+  path=TotalL/v_res;
   L = vecnorm(points(:,1,l+1)-st_point);
   while path > L && l < v_res-2
     l++;
@@ -98,7 +98,7 @@ l=1;
 k=1;
 while true
   ind=k;
-  mask = reshape(abs(points(1,:,:)-points(1,:,k)) < TotalL/500*2  & abs(points(2,:,:)-points(2,:,k)) < TotalL/500*2, q-1, 1);
+  mask = reshape(abs(points(1,:,:)-points(1,:,k)) < TotalL/v_res*2  & abs(points(2,:,:)-points(2,:,k)) < TotalL/v_res*2, q-1, 1);
   mask(v_res-1) = 0;
   mask(v_res) = 1;
   while mask(ind++); endwhile
@@ -127,6 +127,11 @@ endwhile
 filtered_points = resize(filtered_points, 2, 1, l-1);
 plot(points(1,:,:), points(2,:,:), "linestyle", "-", "marker", "o");
 plot(filtered_points(1,:,:), filtered_points(2,:,:), "color", "red", "linewidth", 3);
+
+for i = 1:30:u_res
+  plot(Y(1,1,:,i), Y(2,1,:,i), "black");
+endfor
+
 waitfor(gcf);
 drawnow;
 

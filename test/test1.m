@@ -34,12 +34,10 @@ rack1 = @(t) rack(t);
 rack2 = @(t) [-rack(t)(1,:); rack(t)(2,:)];
 
 
-u_res = 1000;
-v_res = 1000;
+u_res = 10000;
+v_res = 10000;
 
-axis equal;
-hold on;
-axis([-3*R 3*R -2*R 2*R]);
+
 
 tr_x = @(t) ones(size(t))*R + t/5;
 tr_y = @(t) -(t.*R + t.*t.*R./10);
@@ -52,6 +50,10 @@ sv = linspace(-0.7*n, 1.22*n, v_res);
 
 _gear1 = CurvilinearGear(n, R, rack1, transform, su, sv);
 _gear2 = CurvilinearGear(n, R, rack2, transform, su, sv);
+
+axis equal;
+hold on;
+axis([-3*R 3*R -2*R 2*R]);
 
 p1 = fill(_gear1(1,:),_gear1(2,:),"r");
 p2 = fill(_gear2(1,:),_gear2(2,:),"b");

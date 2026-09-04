@@ -1,7 +1,7 @@
 R = 1;
 ro = 1.25;
 ri = 0.75;
-alp = 20*pi/180;
+alp = 10*pi/180;
 n = 8;
 rc = 0.1;
 
@@ -31,11 +31,58 @@ Rot = @(alp) reshape([
 
 rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
-u_res = 3000;
-v_res = 3000;
 
-gear11 = Gear(n, R, rack, u_res, v_res);
-gear21 = Gear(2*n, 2*R, rack, u_res, v_res);
+
+u_res = 500;
+v_res = 2000;
+
+su = linspace(-2*pi/n, 2*pi/n, u_res);
+sv = linspace(-1,1,v_res);
+
+tr_x = @(t) R*cos(t)-(-R.*t).*sin(t);
+tr_y = @(t) R*sin(t)+(-R.*t).*cos(t);
+tr_rot = @(t) t;
+
+transform = {tr_x, tr_y, tr_rot};
+
+gear11 = CurvilinearGear(n, R, rack(sv), transform, su, sv);
+
+
+global arr_size
+arr_size = size(gear11, 2);
+
+"Interpolate"
+function y = gear_func(t)
+  global arr_size
+  global gear11
+  i = floor(arr_size.*t)+1;
+  q = ones(2,size(t,1))*(arr_size*t - i + 1);
+  m1 = (gear11(:,i) + gear11(:,i+1)) / 2;
+  m2 = (gear11(:,i+1) + gear11(:,i+2)) / 2;
+  p1 = m1.*(1-q) + gear11(:,i+1).*q;
+  p2 = gear11(:,i+1).*(1-q) + m2.*q;
+  y = p1.*(1-q) + p2.*q;
+endfunction
+
+tls = 0:0.0001:0.8;
+hold on;
+plot(gear_func(tls)(1,:),gear_func(tls)(2,:), "linestyle", "-", "marker", ".");
+drawnow;
+waitfor(gcf);
+
+u_res = 2000;
+v_res = 4000;
+
+su = linspace(-pi/n, pi/n, u_res);
+sv = linspace(1.5/n,0.5/n,v_res);
+
+tr_x = @(t) 3*R*cos(t);
+tr_y = @(t) 3*R*sin(t);
+tr_rot = @(t) 3*t + ones(size(t))*(pi+2*pi/n/2 - 2*2*pi/n);
+
+transform = {tr_x, tr_y, tr_rot};
+
+gear21 = CurvilinearGear(2*n, R, gear_func(sv), transform, su, sv);
 
 
 rack11 = [];
@@ -45,6 +92,7 @@ endfor
 rack11 += [2*R; 0];
 rack11 = [rack11, [3*R;3.5*2*pi*R/n]];
 rack11 = [rack11, [3*R;-3.5*2*pi*R/n]];
+rack11 = [rack11, rack11(:,1)];
 
 function rgb = hex2rgb(hex)
     hex = strrep(hex, '#', '');
