@@ -1,4 +1,4 @@
-function gear = CurvilinearGear(n, R, tooth, transform_func, su, sv)
+function gear = CurvilinearGear(n, tooth, transform_func, su, sv)
 global Rot
 
 axis equal;
@@ -6,59 +6,73 @@ hold on;
 
 "Solve Envelope"
 
-u_res = size(su,2);
-v_res = size(sv,2);
-
-[u,v] = meshgrid(1:u_res, 1:v_res);
-[U, V] = meshgrid(su,sv);
+u_res = size(su,2)
+v_res = size(sv,2)
 
 d = @(s) (s(end)-s(1))/size(s,2);
 
-Rot_field = Rot(transform_func{3}(su));
-
+Rot_field = Rot(transform_func{3}(-su));
+size(Rot_field);
 X = tooth;
 
-MRot=reshape(Rot_field(:,:,u),2,2,v_res,u_res);
-X1 = reshape([transform_func{1}(U)(:)'; transform_func{2}(U)(:)'],[2,1,size(U)]);
-M1=reshape(X(:,v),2,1,v_res,u_res);
+MRot=Rot_field;
+X1 = reshape([transform_func{1}(su)(:)'; transform_func{2}(su)(:)'],[2,u_res]);
+M1=reshape(X(:,1:v_res),2,v_res);
 
-function result = batchMTimesV(A,B)
-  result = zeros(2, 1, size(A,3), size(A,4));
-  result(1,1,:,:) = A(1,1,:,:).*B(1,1,:,:) + A(1,2,:,:).*B(2,1,:,:);
-  result(2,1,:,:) = A(2,1,:,:).*B(1,1,:,:) + A(2,2,:,:).*B(2,1,:,:);
-endfunction
+function C = batchMTimesV(A, v)
+
+  A = oclArray(A);
+  v = oclArray(v);
+
+  A = reshape(A,[2,2*u_res]);
+  C = A'*v;
+
+  C = single(C);
+
+  C = reshape(C,[2,u_res, v_res]);
+
+end
 
 function result = batchCross(u,v)
-  result = zeros(1, 1, size(u,3), size(u,4));
-  result(1,1,:,:) = u(1,1,:,:).*v(2,1,:,:) - u(2,1,:,:).*v(1,1,:,:);
+  u1 = oclArray(reshape(u(1,:,:),[u_res-1,v_res-1]));
+  v2 = oclArray(reshape(v(2,:,:),[u_res-1,v_res-1]));
+  result = single(u1.*v2);
+  u2 = oclArray(reshape(u(2,:,:),[u_res-1,v_res-1]));
+  v1 = oclArray(reshape(v(1,:,:),[u_res-1,v_res-1]));
+  result -= single(u2.*v1);
 endfunction
 
 "Solve Y"
+tic
 Y = batchMTimesV(MRot, M1);
 Y += X1;
+toc
 
 
-for i = 1:10:u_res
-  plot(Y(1,1,:,i), Y(2,1,:,i), "black");
+for i = 1:floor(u_res/30):u_res
+  plot(Y(1,i,:), Y(2,i,:), "black");
 endfor
 
+%todo: accelerate diff()
+
 "Solve F"
-dY_du = resize(diff(Y,1,4)/d(su),2,1,v_res-1,u_res-1);
-dY_dv = resize(diff(Y,1,3)/d(sv),2,1,v_res-1,u_res-1);
+Y1 = oclArray(Y);
+dY_du = resize(diff(Y1,1,3)/d(su),2,u_res-1,v_res-1);
+dY_dv = resize(diff(Y1,1,2)/d(sv),2,u_res-1,v_res-1);
 F = batchCross(dY_du, dY_dv);
 
 "Solve envelope"
-points = zeros(2,1,v_res-1);
+points = zeros(2,v_res-1);
 prev_ind = 0;
 for i = 1:v_res-1
-  arr = abs(F(1,1,i,:));
+  arr = abs(F(:,i));
   do
     [sol, ind] = min(arr);
     arr(ind) = 200;
 
-  until abs(ind - prev_ind) < v_res/100 || prev_ind == 0;
+  until abs(ind - prev_ind) < u_res/10 || prev_ind == 0;
   prev_ind = ind;
-  points(:,:,i) = Y(:,:,i,ind);
+  points(:,i) = Y(:,ind,i);
 endfor
 
 plot(points(1,:,:), points(2,:,:), "linestyle", "-", "marker", "o", "color", "blue");
@@ -69,29 +83,29 @@ Np = 1000;
 
 TotalL = 0;
 for i = 1: v_res-2
-  TotalL += vecnorm(points(:,1,i+1)-points(:,1,i));
+  TotalL += vecnorm(points(:,i+1)-points(:,i));
 endfor
 
-points1 = zeros(2,1,v_res);
+points1 = zeros(2,v_res);
 l=1;
 q=1;
-st_point = points(:,:,1);
+st_point = points(:,1);
 for i = 1:v_res
   path=TotalL/Np;
-  L = vecnorm(points(:,1,l+1)-st_point);
+  L = vecnorm(points(:,l+1)-st_point);
   while path > L && l < v_res-2
     l++;
     path -= L;
-    st_point = points(:,:,l);
-    L = vecnorm(points(:,1,l+1)-st_point);
+    st_point = points(:,l);
+    L = vecnorm(points(:,l+1)-st_point);
   endwhile
-  st_point = (points(:,1,l+1)-st_point)/L*path + st_point;
-  points1(:,:,i) = st_point;
+  st_point = (points(:,l+1)-st_point)/L*path + st_point;
+  points1(:,i) = st_point;
   q = i;
-  if vecnorm(st_point-points(:,:,v_res-1)) < 0.01; break endif
+  if vecnorm(st_point-points(:,v_res-1)) < 0.01; break endif
 endfor
 
-points1 = resize(points1, 2, 1, q-1);
+points1 = resize(points1, 2, q-1);
 
 points = points1;
 
@@ -113,11 +127,11 @@ endfunction
 
 "Filter self-intersections out"
 
-filtered_points = zeros(2,1,q-1);
+filtered_points = zeros(2,q-1);
 l=1;
 k=1;
 while true
-  mask = reshape(abs(points(1,:,:)-points(1,:,k)) < TotalL/Np*2  & abs(points(2,:,:)-points(2,:,k)) < TotalL/Np*2, q-1, 1);
+  mask = reshape(abs(points(1,:)-points(1,k)) < TotalL/Np*2  & abs(points(2,:)-points(2,k)) < TotalL/Np*2, q-1, 1);
 
   ind = find(mask, 1, "last");
 
@@ -125,10 +139,10 @@ while true
 
   for j = ind-20 : ind
     if j > q-2 || j <= 0 break; endif  
-    if isIntersecting(points(:,1,k),points(:,1,k+1),points(:,1,j),points(:,1,j+1))
-      filtered_points(:,:,l) = points(:,:,k);
+    if isIntersecting(points(:,k),points(:,k+1),points(:,j),points(:,j+1))
+      filtered_points(:,l) = points(:,k);
       l++;
-      filtered_points(:,1,l) = Intersection(points(:,1,k),points(:,1,k+1),points(:,1,j),points(:,1,j+1));
+      filtered_points(:,l) = Intersection(points(:,k),points(:,k+1),points(:,j),points(:,j+1));
       l++;
       k=j+1;
       break;
@@ -136,17 +150,17 @@ while true
   endfor
 
   endif
-  filtered_points(:,:,l) = points(:,:,k);
+  filtered_points(:,l) = points(:,k);
   l++;
   k++;
   if k > q-2 break; endif  
 endwhile
 
-filtered_points = resize(filtered_points, 2, 1, l-1);
+filtered_points = resize(filtered_points, 2, l-1);
 
 
 % plot(points(1,:,:), points(2,:,:), "linestyle", "-", "marker", "o", "color", "red");
-plot(filtered_points(1,:,:), filtered_points(2,:,:), "color", "red", "linewidth", 3);
+plot(filtered_points(1,:), filtered_points(2,:), "color", "red", "linewidth", 3);
 
 
 waitfor(gcf);
