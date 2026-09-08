@@ -156,7 +156,7 @@ endwhile
 
 filtered_points = resize(filtered_points, 2, l-1);
 
-for i = 1:floor(u_res/30):u_res
+for i = 1:floor(u_res/100):u_res
   plot(Y(1,i,:), Y(2,i,:), "black");
 endfor
 

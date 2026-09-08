@@ -37,8 +37,8 @@ rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
 
 
-u_res = 6500;
-v_res = 6500;
+u_res = 5000;
+v_res = 7000;
 
 su = linspace(-2*pi/n, 2*pi/n, u_res);
 sv = linspace(-1,1,v_res);
@@ -74,8 +74,8 @@ plot(gear_func(tls)(1,:),gear_func(tls)(2,:), "linestyle", "-", "marker", ".");
 drawnow;
 waitfor(gcf);
 
-u_res = 6500;
-v_res = 6500;
+% u_res = 3000;
+% v_res = 10000;
 
 su = linspace(-pi/n, pi/n, u_res);
 sv = linspace(1.5/n,0.5/n,v_res);
