@@ -33,33 +33,31 @@ function C = batchMTimesV(A, v)
 
 end
 
-function result = batchCross(u,v)
-  u1 = oclArray(reshape(u(1,:,:),[u_res-1,v_res-1]));
-  v2 = oclArray(reshape(v(2,:,:),[u_res-1,v_res-1]));
-  result = single(u1.*v2);
-  u2 = oclArray(reshape(u(2,:,:),[u_res-1,v_res-1]));
-  v1 = oclArray(reshape(v(1,:,:),[u_res-1,v_res-1]));
-  result -= single(u2.*v1);
-endfunction
+
 
 "Solve Y"
-tic
 Y = batchMTimesV(MRot, M1);
 Y += X1;
-toc
 
+function result = batchCross(u1,u2,v1,v2)
+  result = u1.*v2 - u2.*v1;
+endfunction
 
-for i = 1:floor(u_res/30):u_res
-  plot(Y(1,i,:), Y(2,i,:), "black");
-endfor
-
-%todo: accelerate diff()
+function dif = gpuDiff(Y, i, dx)
+  l = size(Y,2);
+  Y1 = Y(:, 1:l-1, i);
+  Y2 = Y(:, 2:l  , i);
+  dif = (Y2-Y1)/dx;
+endfunction
 
 "Solve F"
-Y1 = oclArray(Y);
-dY_du = resize(diff(Y1,1,3)/d(su),2,u_res-1,v_res-1);
-dY_dv = resize(diff(Y1,1,2)/d(sv),2,u_res-1,v_res-1);
-F = batchCross(dY_du, dY_dv);
+oclYu = oclArray(resize(permute(Y,[2,3,1]),[u_res-1,v_res,2]));
+oclYv = oclArray(resize(permute(Y,[3,2,1]),[v_res-1,u_res,2]));
+F = batchCross(
+  gpuDiff(oclYu,1,d(su)), gpuDiff(oclYu,2,d(su)),
+  gpuDiff(oclYv,1,d(sv))', gpuDiff(oclYv,2,d(sv))'
+);
+F = single(F);
 
 "Solve envelope"
 points = zeros(2,v_res-1);
@@ -158,6 +156,9 @@ endwhile
 
 filtered_points = resize(filtered_points, 2, l-1);
 
+for i = 1:floor(u_res/30):u_res
+  plot(Y(1,i,:), Y(2,i,:), "black");
+endfor
 
 % plot(points(1,:,:), points(2,:,:), "linestyle", "-", "marker", "o", "color", "red");
 plot(filtered_points(1,:), filtered_points(2,:), "color", "red", "linewidth", 3);

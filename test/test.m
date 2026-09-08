@@ -37,8 +37,8 @@ rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
 
 
-u_res = 10000;
-v_res = 10000;
+u_res = 6500;
+v_res = 6500;
 
 su = linspace(-2*pi/n, 2*pi/n, u_res);
 sv = linspace(-1,1,v_res);
@@ -74,8 +74,8 @@ plot(gear_func(tls)(1,:),gear_func(tls)(2,:), "linestyle", "-", "marker", ".");
 drawnow;
 waitfor(gcf);
 
-u_res = 5000;
-v_res = 7000;
+u_res = 6500;
+v_res = 6500;
 
 su = linspace(-pi/n, pi/n, u_res);
 sv = linspace(1.5/n,0.5/n,v_res);
@@ -106,9 +106,9 @@ axis equal;
 hold on;
 axis([-6*R 6*R -3*R 3*R]);
 
-p1 = fill(gear11(1,:,:), gear11(2,:,:), hex2rgb("#29D69A"));
-p2 = fill(gear21(1,:,:), gear21(2,:,:), hex2rgb("#D69A29"));
-p3 = fill(rack11(1,:),rack11(2,:), hex2rgb("#9A29D6"));
+p1 = plot(gear11(1,:,:), gear11(2,:,:), hex2rgb("#29D69A"));
+p2 = plot(gear21(1,:,:), gear21(2,:,:), hex2rgb("#D69A29"));
+p3 = plot(rack11(1,:),rack11(2,:), hex2rgb("#9A29D6"));
 
 fps = 120;
 tme = 2;
