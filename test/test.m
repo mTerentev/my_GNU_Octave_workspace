@@ -5,7 +5,7 @@ pkg load ocl;
 R = 1;
 ro = 1.25;
 ri = 0.75;
-alp = 20*pi/180;
+alp = 5*pi/180;
 n = 8;
 rc = 0.1;
 
@@ -37,10 +37,10 @@ rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
 
 
-u_res = 5000;
-v_res = 7000;
+u_res = 11000;
+v_res = 11000;
 
-su = linspace(-2*pi/n, 2*pi/n, u_res);
+su = linspace(-2.5*pi/n, 2.5*pi/n, u_res);
 sv = linspace(-1,1,v_res);
 
 tr_x = @(t) R*cos(t)-(-R.*t).*sin(t);
@@ -74,8 +74,8 @@ plot(gear_func(tls)(1,:),gear_func(tls)(2,:), "linestyle", "-", "marker", ".");
 drawnow;
 waitfor(gcf);
 
-% u_res = 3000;
-% v_res = 10000;
+% u_res = 7000;
+% v_res = 5000;
 
 su = linspace(-pi/n, pi/n, u_res);
 sv = linspace(1.5/n,0.5/n,v_res);

@@ -47,17 +47,23 @@ function dif = gpuDiff(Y, i, dx)
   l = size(Y,2);
   Y1 = Y(:, 1:l-1, i);
   Y2 = Y(:, 2:l  , i);
-  dif = (Y2-Y1)/dx;
+  dif = single((Y2-Y1)/dx);
 endfunction
 
 "Solve F"
 oclYu = oclArray(resize(permute(Y,[2,3,1]),[u_res-1,v_res,2]));
+u1 = gpuDiff(oclYu,1,d(su));
+u2 = gpuDiff(oclYu,2,d(su));
+clear oclYu;
+
 oclYv = oclArray(resize(permute(Y,[3,2,1]),[v_res-1,u_res,2]));
+v1 = gpuDiff(oclYv,1,d(sv))';
+v2 = gpuDiff(oclYv,2,d(sv))';
 F = batchCross(
-  gpuDiff(oclYu,1,d(su)), gpuDiff(oclYu,2,d(su)),
-  gpuDiff(oclYv,1,d(sv))', gpuDiff(oclYv,2,d(sv))'
+  u1, u2,
+  v1, v2
 );
-F = single(F);
+clear oclYv;
 
 "Solve envelope"
 points = zeros(2,v_res-1);
