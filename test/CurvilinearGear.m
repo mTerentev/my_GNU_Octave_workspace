@@ -50,20 +50,40 @@ function dif = gpuDiff(Y, i, dx)
   dif = single((Y2-Y1)/dx);
 endfunction
 
+% todo: eliminate permute
+
 "Solve F"
-oclYu = oclArray(resize(permute(Y,[2,3,1]),[u_res-1,v_res,2]));
+oclYu = oclArray(resize(permute(Y(:,1:u_res/2,:),[2,3,1]),[u_res/2-1,v_res,2]));
+oclYv = oclArray(resize(permute(Y(:,1:u_res/2,:),[3,2,1]),[v_res-1,u_res/2,2]));
+
 u1 = gpuDiff(oclYu,1,d(su));
 u2 = gpuDiff(oclYu,2,d(su));
-clear oclYu;
-
-oclYv = oclArray(resize(permute(Y,[3,2,1]),[v_res-1,u_res,2]));
 v1 = gpuDiff(oclYv,1,d(sv))';
 v2 = gpuDiff(oclYv,2,d(sv))';
-F = batchCross(
+clear oclYu;
+clear oclYv;
+
+F1 = batchCross(
   u1, u2,
   v1, v2
 );
+
+oclYu = oclArray(resize(permute(Y(:,u_res/2-1:u_res,:),[2,3,1]),[u_res/2,v_res,2]));
+oclYv = oclArray(resize(permute(Y(:,u_res/2-1:u_res,:),[3,2,1]),[v_res-1,u_res/2+1,2]));
+
+u1 = gpuDiff(oclYu,1,d(su));
+u2 = gpuDiff(oclYu,2,d(su));
+v1 = gpuDiff(oclYv,1,d(sv))';
+v2 = gpuDiff(oclYv,2,d(sv))';
+clear oclYu;
 clear oclYv;
+
+F2 = batchCross(
+  u1, u2,
+  v1, v2
+);
+F = [F1; F2];
+size(F)
 
 "Solve envelope"
 points = zeros(2,v_res-1);

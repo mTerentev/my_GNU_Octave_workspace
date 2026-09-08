@@ -5,7 +5,7 @@ pkg load ocl;
 R = 1;
 ro = 1.25;
 ri = 0.75;
-alp = 5*pi/180;
+alp = 20*pi/180;
 n = 8;
 rc = 0.1;
 
@@ -37,7 +37,7 @@ rack = @(t) [reshape(ftooth(abs(t)),1,s(t)); reshape(t,1,s(t))]*pi*R/n;
 
 
 
-u_res = 11000;
+u_res = 9000;
 v_res = 11000;
 
 su = linspace(-2.5*pi/n, 2.5*pi/n, u_res);
